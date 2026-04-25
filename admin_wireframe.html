@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>後台管理系統 — Wireframe</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#efece8;--sf:#fff;--sf2:#f7f5f2;--bd:#d2cec8;--bd2:#e4e1db;
+  --tx:#1c1a18;--tx2:#58554f;--tx3:#9a9590;
+  --dk:#36322e;--dk2:#6b6660;
+  --ok-bg:#eaf2ea;--ok-tx:#2a5a2a;
+  --pd-bg:#fdf3e3;--pd-tx:#7a5818;
+  --cn-bg:#f5edec;--cn-tx:#882828;
+  --r:5px;--font:system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--tx);font-size:14px;line-height:1.5;display:flex;min-height:100vh}
+
+/* Sidebar */
+#sb{width:196px;min-height:100vh;background:var(--dk);display:flex;flex-direction:column;flex-shrink:0;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sb-logo{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo .ln{color:#fff;font-size:14px;font-weight:600;letter-spacing:.04em}
+.sb-logo .ls{color:rgba(255,255,255,.38);font-size:11px;margin-top:2px}
+.sb-nav{flex:1;padding:6px 0}
+.ni{display:flex;align-items:center;gap:9px;padding:8px 16px;cursor:pointer;color:rgba(255,255,255,.55);font-size:13px;border-left:3px solid transparent;transition:all .14s}
+.ni:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.88)}
+.ni.on{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.55)}
+.ni-ic{font-size:14px;width:16px;text-align:center}
+.sb-ft{padding:12px 16px;border-top:1px solid rgba(255,255,255,.08);font-size:10px;color:rgba(255,255,255,.22)}
+
+/* Main */
+#main{margin-left:196px;flex:1;display:flex;flex-direction:column}
+
+/* Topbar */
+.tb{background:var(--sf);border-bottom:1px solid var(--bd);padding:0 26px;height:50px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.tb-title{font-size:14px;font-weight:600}
+.tb-right{display:flex;align-items:center;gap:14px;font-size:12px;color:var(--tx3)}
+.av{width:26px;height:26px;border-radius:50%;background:var(--bd);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--tx2)}
+
+/* Content */
+.ct{padding:22px 26px;flex:1}
+
+/* Panel */
+.pn{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r)}
+.ph{padding:12px 16px;border-bottom:1px solid var(--bd2);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.pt{font-size:13px;font-weight:600}
+.pb{padding:16px}
+
+/* Buttons */
+.btn{height:30px;padding:0 14px;border-radius:var(--r);font-family:var(--font);font-size:12px;font-weight:500;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:5px;white-space:nowrap;transition:opacity .14s}
+.btn:hover{opacity:.8}
+.btn-dk{background:var(--dk);color:#fff}
+.btn-gh{background:transparent;border:1px solid var(--bd);color:var(--tx2)}
+.btn-rd{background:#882828;color:#fff}
+.btn-xs{height:24px;padding:0 9px;font-size:11px}
+.btn:disabled{opacity:.35;cursor:not-allowed}
+
+/* Filters */
+.frow{display:flex;gap:9px;flex-wrap:wrap;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fl{font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.fc{height:30px;padding:0 8px;border:1px solid var(--bd);border-radius:var(--r);font-family:var(--font);font-size:12px;color:var(--tx);background:var(--sf2);outline:none}
+.fc:focus{border-color:var(--dk2)}
+
+/* Table */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:10px;font-weight:600;color:var(--tx3);letter-spacing:.05em;text-transform:uppercase;padding:7px 11px;background:var(--sf2);border-bottom:1px solid var(--bd);text-align:left}
+.tbl td{padding:10px 11px;border-bottom:1px solid var(--bd2);font-size:12px;vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr.ck{cursor:pointer}
+.tbl tr.ck:hover td{background:var(--sf2)}
+
+/* Tags */
+.tag{display:inline-block;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:600}
+.tok{background:var(--ok-bg);color:var(--ok-tx)}
+.tpd{background:var(--pd-bg);color:var(--pd-tx)}
+.tcn{background:var(--cn-bg);color:var(--cn-tx)}
+
+/* Stats */
+.sr{display:flex;gap:12px;margin-bottom:18px}
+.sc{flex:1;background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px}
+.sv{font-size:22px;font-weight:600;line-height:1}
+.sl2{font-size:10px;color:var(--tx3);margin-top:3px;text-transform:uppercase;letter-spacing:.04em}
+
+/* Detail */
+.dg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.df{display:flex;flex-direction:column;gap:2px}
+.dl{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.04em;font-weight:600}
+.dv2{font-size:13px}
+.bc{font-size:11px;color:var(--tx3);margin-bottom:14px;display:flex;align-items:center;gap:5px}
+.bc a{color:var(--tx3);cursor:pointer;text-decoration:none}
+.bc a:hover{color:var(--tx)}
+.note{width:100%;height:68px;padding:7px 9px;border:1px solid var(--bd);border-radius:var(--r);font-family:var(--font);font-size:12px;color:var(--tx);background:var(--sf2);resize:vertical;outline:none}
+.note:focus{border-color:var(--dk2)}
+hr.dv{border:none;border-top:1px solid var(--bd2);margin:14px 0}
+
+/* ── Step indicator ── */
+.steps{display:flex;align-items:center;gap:0;margin-bottom:24px}
+.step-item{display:flex;align-items:center;gap:0}
+.step-num{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--bd);background:var(--sf2);color:var(--tx3);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.step-label{font-size:12px;color:var(--tx3);margin-left:7px;white-space:nowrap}
+.step-line{flex:1;height:1px;background:var(--bd2);min-width:28px;margin:0 10px}
+.step-item.on .step-num{background:var(--dk);color:#fff;border-color:var(--dk)}
+.step-item.on .step-label{color:var(--tx);font-weight:500}
+.step-item.done .step-num{background:var(--bd);color:var(--tx2);border-color:var(--bd)}
+
+/* ── Slot buttons (new booking) ── */
+.slot-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:4px}
+.slot-btn{padding:10px 6px;border:1.5px solid var(--bd);border-radius:var(--r);background:var(--sf2);font-family:var(--font);font-size:12px;cursor:pointer;text-align:center;color:var(--tx);transition:all .13s}
+.slot-btn:hover{border-color:var(--dk2);color:var(--dk)}
+.slot-btn.sel{border-color:var(--dk);background:var(--dk);color:#fff}
+
+/* Guest card (new booking) */
+.gcard{border:1px solid var(--bd2);border-radius:var(--r);padding:13px 14px;margin-bottom:10px;background:var(--sf2)}
+.gcard-label{font-size:10px;font-weight:600;color:var(--tx3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px}
+.gcard select{width:100%;height:30px;padding:0 8px;border:1px solid var(--bd);border-radius:var(--r);font-family:var(--font);font-size:12px;background:var(--sf);color:var(--tx);outline:none}
+
+/* ── Dashboard grid ── */
+.dg-wrap{overflow-x:auto}
+.dgrid{border-collapse:collapse;min-width:480px;width:100%}
+.dgrid th{font-size:10px;font-weight:600;color:var(--tx3);padding:5px 9px;text-align:center;background:var(--sf2);border:1px solid var(--bd);letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.dgrid th.tcol{text-align:left;width:84px}
+.dgrid td{border:1px solid var(--bd2);padding:0;height:56px;vertical-align:top}
+.dgrid td.tcel{background:var(--sf2);padding:5px 9px;font-size:11px;color:var(--tx3);white-space:nowrap;font-weight:500;vertical-align:middle}
+.cempty{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.cdot{width:5px;height:5px;border-radius:50%;background:var(--bd)}
+.cbook{width:100%;height:100%;padding:5px 7px;display:flex;flex-direction:column;gap:1px;cursor:pointer;transition:filter .12s}
+.cbook:hover{filter:brightness(.93)}
+.cn2{font-size:11px;font-weight:600}
+.cs2{font-size:10px;opacity:.75}
+.cth{font-size:10px;opacity:.6}
+
+/* Branch section */
+.br-section{margin-bottom:20px}
+.br-section-hd{font-size:12px;font-weight:600;color:var(--tx2);padding:8px 16px;background:var(--sf2);border:1px solid var(--bd);border-bottom:none;border-radius:var(--r) var(--r) 0 0;display:flex;justify-content:space-between;align-items:center}
+.br-section .pn{border-radius:0 0 var(--r) var(--r)}
+
+/* Legend */
+.leg{display:flex;gap:14px;align-items:center;font-size:11px;color:var(--tx3);flex-wrap:wrap}
+.ld{width:9px;height:9px;border-radius:2px;display:inline-block;margin-right:3px;vertical-align:middle}
+
+/* Pager */
+.pager{display:flex;align-items:center;gap:5px}
+.pb2{width:26px;height:26px;border-radius:var(--r);border:1px solid var(--bd);background:var(--sf);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--tx2)}
+.pb2.on{background:var(--dk);color:#fff;border-color:var(--dk)}
+.pb2:hover:not(.on){background:var(--sf2)}
+
+/* Modal */
+.mo-bg{position:fixed;inset:0;background:rgba(0,0,0,.32);z-index:200;display:none;align-items:center;justify-content:center}
+.mo-bg.show{display:flex}
+.mo{background:var(--sf);border-radius:7px;border:1px solid var(--bd);padding:26px;width:360px}
+.mo h3{font-size:14px;font-weight:600;margin-bottom:9px}
+.mo p{font-size:12px;color:var(--tx2);line-height:1.65;margin-bottom:20px}
+.mo-btns{display:flex;gap:8px;justify-content:flex-end}
+
+.screen{display:none}
+.screen.on{display:block}
+.step-pane{display:none}
+.step-pane.on{display:block}
+
+/* Popover */
+.popover{position:fixed;z-index:300;background:var(--sf);border:1px solid var(--bd);border-radius:8px;box-shadow:0 6px 22px rgba(0,0,0,.13);padding:14px 15px;width:218px;display:none}
+.popover.show{display:block}
+.pop-head{font-size:11px;font-weight:600;color:var(--tx2);padding-bottom:9px;border-bottom:1px solid var(--bd2);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pop-lbl{font-size:10px;color:var(--tx3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.pill-row{display:flex;gap:5px;flex-wrap:wrap}
+.pill{padding:4px 9px;border-radius:20px;font-size:11px;font-weight:500;cursor:pointer;border:1.5px solid var(--bd);background:var(--sf2);color:var(--tx2);transition:all .13s;line-height:1.4}
+.pill:hover{border-color:var(--dk2);color:var(--dk)}
+.pill.aok{background:var(--ok-bg);color:var(--ok-tx);border-color:var(--ok-tx)}
+.pill.apd{background:var(--pd-bg);color:var(--pd-tx);border-color:var(--pd-tx)}
+.pill.acn{background:var(--cn-bg);color:var(--cn-tx);border-color:var(--cn-tx)}
+/* Toast */
+.toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);background:var(--dk);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<nav id="sb">
+  <div class="sb-logo">
+    <div class="ln">悠然 Yōzen</div>
+    <div class="ls">後台管理系統</div>
+  </div>
+  <div class="sb-nav">
+    <div class="ni on" id="nav-list" onclick="go('list')"><span class="ni-ic">≡</span><span>預約管理</span></div>
+    <div class="ni"    id="nav-dash" onclick="go('dash')"><span class="ni-ic">▦</span><span>預約營運看板</span></div>
+  </div>
+  <div class="sb-ft">Wireframe v3</div>
+</nav>
+
+<div id="main">
+
+<!-- ══════════ LIST ══════════ -->
+<div class="screen on" id="p-list">
+  <div class="tb">
+    <div class="tb-title">預約管理</div>
+    <div class="tb-right"><span>台北信義店</span><div class="av">管</div></div>
+  </div>
+  <div class="ct">
+    <div class="sr">
+      <div class="sc"><div class="sv" id="stat-total">49</div><div class="sl2">本日預約</div></div>
+      <div class="sc"><div class="sv" id="stat-confirmed">38</div><div class="sl2">已確認</div></div>
+      <div class="sc"><div class="sv" id="stat-pending">11</div><div class="sl2">待確認</div></div>
+    </div>
+    <div class="pn">
+      <div class="ph">
+        <div class="frow">
+          <div class="fg"><div class="fl">分店</div>
+            <select class="fc" id="f-br" onchange="rl()">
+              <option value="">全部</option>
+              <option value="信義" selected>台北信義店</option>
+              <option value="中山">台北中山店</option>
+              <option value="板橋">新北板橋店</option>
+            </select>
+          </div>
+          <div class="fg"><div class="fl">日期</div>
+            <input type="date" class="fc" id="f-dt" value="2026-04-15" onchange="rl()">
+          </div>
+          <div class="fg"><div class="fl">搜尋預約編號</div>
+            <input type="text" class="fc" id="f-id" placeholder="BK-..." oninput="rl()" style="width:148px">
+          </div>
+          <div class="fg"><div class="fl">搜尋主預約人</div>
+            <input type="text" class="fc" id="f-nm" placeholder="姓名" oninput="rl()" style="width:100px">
+          </div>
+          <button class="btn btn-gh" onclick="rl()">查詢</button>
+        </div>
+        <button class="btn btn-dk" onclick="go('new')">＋ 建立預約</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="tbl">
+          <thead><tr><th>預約碼</th><th>分店</th><th>日期</th><th>時段</th><th>人數</th><th>預約人</th><th>狀態</th><th>建立時間</th><th>操作</th></tr></thead>
+          <tbody id="lb"></tbody>
+        </table>
+      </div>
+      <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--bd2)">
+        <span style="font-size:11px;color:var(--tx3)">共 <span id="lc">0</span> 筆</span>
+        <div class="pager" id="list-pager"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ DETAIL ══════════ -->
+<div class="screen" id="p-detail">
+  <div class="tb">
+    <div class="tb-title">預約詳情</div>
+    <div class="tb-right"><div class="av">管</div></div>
+  </div>
+  <div class="ct">
+    <div class="bc"><a onclick="go('list')">預約管理</a><span>›</span><span id="bk-bc"></span></div>
+    <div style="display:flex;gap:13px;flex-wrap:wrap;align-items:flex-start">
+      <!-- Left -->
+      <div style="flex:1;min-width:280px;display:flex;flex-direction:column;gap:13px">
+        <div class="pn">
+          <div class="ph"><div class="pt">預約主單</div><span class="tag" id="d-stag"></span></div>
+          <div class="pb">
+            <div class="dg">
+              <div class="df"><div class="dl">預約碼</div><div class="dv2" id="d-id" style="font-family:monospace;font-size:12px"></div></div>
+              <div class="df"><div class="dl">狀態</div><div class="dv2" id="d-st"></div></div>
+              <div class="df"><div class="dl">分店</div><div class="dv2" id="d-br"></div></div>
+              <div class="df"><div class="dl">日期</div><div class="dv2" id="d-da"></div></div>
+              <div class="df"><div class="dl">時段</div><div class="dv2" id="d-sl"></div></div>
+              <div class="df"><div class="dl">人數</div><div class="dv2" id="d-nu"></div></div>
+              <div class="df" style="grid-column:span 2"><div class="dl">建立時間</div><div class="dv2" id="d-cr"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="pn">
+          <div class="ph"><div class="pt">預約人資料</div></div>
+          <div class="pb">
+            <div class="dg">
+              <div class="df"><div class="dl">姓名</div><div class="dv2" id="d-nm"></div></div>
+              <div class="df"><div class="dl">手機</div><div class="dv2" id="d-ph"></div></div>
+              <div class="df" style="grid-column:span 2"><div class="dl">Email</div><div class="dv2" id="d-em"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="pn">
+          <div class="ph"><div class="pt">備註</div></div>
+          <div class="pb">
+            <textarea class="note" id="d-note" placeholder="輸入備註（僅後台可見）…"></textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:7px">
+              <button class="btn btn-gh btn-xs" onclick="saveNote()">儲存備註</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Right -->
+      <div style="flex:1.5;min-width:280px;display:flex;flex-direction:column;gap:13px">
+        <div class="pn">
+          <div class="ph"><div class="pt">成員明細</div></div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr><th>順序</th><th>服務項目</th><th>床位</th><th>配對技師</th><th>費用</th></tr></thead>
+              <tbody id="d-gb"></tbody>
+              <tfoot><tr>
+                <td colspan="4" style="font-size:11px;color:var(--tx2);font-weight:600;padding:9px 11px">合計</td>
+                <td style="font-weight:600;padding:9px 11px" id="d-tot"></td>
+              </tr></tfoot>
+            </table>
+          </div>
+        </div>
+        <div class="pn">
+          <div class="ph"><div class="pt">操作</div></div>
+          <div class="pb" style="display:flex;gap:9px;flex-wrap:wrap">
+            <button class="btn btn-rd" id="cancel-btn" onclick="showMo()">取消此預約</button>
+            <button class="btn btn-gh" onclick="go('list')">← 返回列表</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ NEW BOOKING (3-step, desktop) ══════════ -->
+<div class="screen" id="p-new">
+  <div class="tb">
+    <div class="tb-title">建立預約</div>
+    <div class="tb-right"><div class="av">管</div></div>
+  </div>
+  <div class="ct" style="padding:0">
+    <div style="display:flex;min-height:calc(100vh - 50px)">
+
+      <!-- ── Left sidebar: step tracker ── -->
+      <div style="width:220px;flex-shrink:0;border-right:1px solid var(--bd);background:var(--sf2);padding:28px 20px;display:flex;flex-direction:column;gap:0">
+        <div style="font-size:11px;color:var(--tx3);font-weight:600;letter-spacing:.05em;text-transform:uppercase;margin-bottom:20px">建立預約</div>
+
+        <!-- Vertical stepper -->
+        <div style="display:flex;flex-direction:column;gap:0" id="vstepper">
+          <div class="vstep on" id="vsi1" style="display:flex;gap:12px;padding-bottom:24px;position:relative">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div class="vstep-num" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bd);background:var(--sf2);color:var(--tx3);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1">1</div>
+              <div style="width:1px;flex:1;background:var(--bd2);margin-top:4px"></div>
+            </div>
+            <div style="padding-top:2px">
+              <div class="vstep-label" style="font-size:12px;font-weight:500;color:var(--tx3)">分店 / 日期 / 人數</div>
+              <div class="vstep-sub" style="font-size:11px;color:var(--tx3);margin-top:2px;display:none" id="vs1-sub"></div>
+            </div>
+          </div>
+          <div class="vstep" id="vsi2" style="display:flex;gap:12px;padding-bottom:24px;position:relative">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:0">
+              <div class="vstep-num" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bd);background:var(--sf2);color:var(--tx3);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:1">2</div>
+              <div style="width:1px;flex:1;background:var(--bd2);margin-top:4px"></div>
+            </div>
+            <div style="padding-top:2px">
+              <div class="vstep-label" style="font-size:12px;font-weight:500;color:var(--tx3)">時段與服務項目</div>
+              <div class="vstep-sub" style="font-size:11px;color:var(--tx3);margin-top:2px;display:none" id="vs2-sub"></div>
+            </div>
+          </div>
+          <div class="vstep" id="vsi3" style="display:flex;gap:12px">
+            <div style="display:flex;flex-direction:column;align-items:center">
+              <div class="vstep-num" style="width:22px;height:22px;border-radius:50%;border:1.5px solid var(--bd);background:var(--sf2);color:var(--tx3);font-size:11px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+            </div>
+            <div style="padding-top:2px">
+              <div class="vstep-label" style="font-size:12px;font-weight:500;color:var(--tx3)">預約人資料</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cancel link at bottom -->
+        <div style="margin-top:auto;padding-top:24px;border-top:1px solid var(--bd2)">
+          <button class="btn btn-gh" style="width:100%;justify-content:center;font-size:12px" onclick="go('list')">取消，返回列表</button>
+        </div>
+      </div>
+
+      <!-- ── Right: step content ── -->
+      <div style="flex:1;padding:32px 36px;overflow-y:auto">
+
+        <!-- Step 1 -->
+        <div class="step-pane on" id="sp1">
+          <div style="max-width:640px">
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px">選擇基本條件</div>
+            <div style="font-size:12px;color:var(--tx3);margin-bottom:24px">請選擇欲預約的分店、日期與總人數。</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:20px">
+              <div class="fg"><div class="fl">分店</div>
+                <select class="fc" id="n-br" style="height:36px;width:100%">
+                  <option value="">— 請選擇 —</option>
+                  <option value="1">台北信義店</option>
+                  <option value="2">台北中山店</option>
+                  <option value="3">新北板橋店</option>
+                </select>
+              </div>
+              <div class="fg"><div class="fl">日期<span style="color:var(--tx3);font-weight:400;margin-left:4px;font-size:9px">（今日起）</span></div>
+                <input type="date" class="fc" id="n-dt" style="height:36px;width:100%">
+              </div>
+              <div class="fg"><div class="fl">預約人數</div>
+                <select class="fc" id="n-nu" style="height:36px;width:100%">
+                  <option value="">— 請選擇 —</option>
+                  <option value="1">1 人</option>
+                  <option value="2">2 人</option>
+                  <option value="3">3 人</option>
+                  <option value="4">4 人</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="n-alert1" style="display:none;font-size:12px;color:var(--cn-tx);background:var(--cn-bg);border:1px solid #e0b8b8;border-radius:var(--r);padding:9px 12px;margin-bottom:16px">
+              ⚠ 請填寫分店、日期與人數
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <button class="btn btn-dk" onclick="step1Next()">查詢可用時段 →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-pane" id="sp2">
+          <div style="max-width:840px">
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px">選擇時段與服務</div>
+            <div style="font-size:12px;color:var(--tx3);margin-bottom:24px" id="n-s2sub"></div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+              <!-- Left: slots -->
+              <div>
+                <div class="fl" style="margin-bottom:10px">可預約時段</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="n-slots"></div>
+              </div>
+              <!-- Right: guest service cards -->
+              <div>
+                <div class="fl" style="margin-bottom:10px">各預約者服務項目</div>
+                <div id="n-guests"></div>
+              </div>
+            </div>
+
+            <div id="n-alert2" style="display:none;font-size:12px;color:var(--cn-tx);background:var(--cn-bg);border:1px solid #e0b8b8;border-radius:var(--r);padding:9px 12px;margin-top:16px">
+              ⚠ 請選擇時段並為每位預約者選擇服務項目
+            </div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:28px;padding-top:20px;border-top:1px solid var(--bd2)">
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn btn-gh" onclick="goStep(1)">← 上一步</button>
+              </div>
+              <button class="btn btn-dk" onclick="step2Next()">下一步 →</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-pane" id="sp3">
+          <div style="max-width:840px">
+            <div style="font-size:16px;font-weight:600;margin-bottom:4px">確認並填寫聯絡資料</div>
+            <div style="font-size:12px;color:var(--tx3);margin-bottom:24px">請確認預約摘要，填寫主要預約人聯絡資訊。</div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start">
+              <!-- Left: summary -->
+              <div class="pn">
+                <div class="ph"><div class="pt">預約摘要</div></div>
+                <div class="pb" style="display:flex;flex-direction:column;gap:0">
+                  <div style="display:grid;grid-template-columns:80px 1fr;gap:6px 12px;font-size:12px;margin-bottom:14px">
+                    <span style="color:var(--tx3)">分店</span><span id="s-br" style="font-weight:500"></span>
+                    <span style="color:var(--tx3)">日期</span><span id="s-dt" style="font-weight:500"></span>
+                    <span style="color:var(--tx3)">時段</span><span id="s-sl" style="font-weight:500"></span>
+                  </div>
+                  <table class="tbl" style="font-size:12px">
+                    <thead><tr><th>位</th><th>服務項目</th><th>費用</th></tr></thead>
+                    <tbody id="s-gb"></tbody>
+                    <tfoot><tr>
+                      <td colspan="2" style="font-weight:600;padding:8px 11px;font-size:11px">合計</td>
+                      <td style="font-weight:600;padding:8px 11px" id="s-tot"></td>
+                    </tr></tfoot>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Right: contact form -->
+              <div class="pn">
+                <div class="ph"><div class="pt">預約人聯絡資料</div></div>
+                <div class="pb" style="display:flex;flex-direction:column;gap:14px">
+                  <div class="fg"><div class="fl">姓名</div>
+                    <input type="text" class="fc" id="n-nm" style="height:36px" placeholder="請輸入姓名">
+                  </div>
+                  <div class="fg"><div class="fl">手機</div>
+                    <input type="tel" class="fc" id="n-ph" style="height:36px" placeholder="09XXXXXXXX">
+                  </div>
+                  <div class="fg"><div class="fl">Email</div>
+                    <input type="email" class="fc" id="n-em" style="height:36px" placeholder="example@email.com">
+                  </div>
+                  <div id="n-alert3" style="display:none;font-size:12px;color:var(--cn-tx);background:var(--cn-bg);border:1px solid #e0b8b8;border-radius:var(--r);padding:9px 12px">
+                    ⚠ 請確認所有欄位填寫正確
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:28px;padding-top:20px;border-top:1px solid var(--bd2)">
+              <div style="display:flex;gap:8px;align-items:center">
+                <button class="btn btn-gh" onclick="goStep(2)">← 上一步</button>
+              </div>
+              <button class="btn btn-dk" onclick="step3Submit()">確認建立預約</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Done -->
+        <div class="step-pane" id="sp-done">
+          <div style="max-width:500px">
+            <div style="background:var(--ok-bg);border:1px solid #b2d8c0;border-radius:8px;padding:28px 32px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="width:36px;height:36px;border-radius:50%;background:#2e7d52;color:#fff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">✓</div>
+                <div>
+                  <div style="font-size:15px;font-weight:600;color:var(--ok-tx)">預約已建立</div>
+                  <div style="font-size:12px;color:var(--ok-tx);opacity:.75;margin-top:2px">確認通知已發送至預約人</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #b2d8c0;border-radius:var(--r);padding:12px 16px">
+                <div style="font-family:monospace;font-size:14px;letter-spacing:.1em;color:var(--dk);flex:1" id="done-id"></div>
+                <button class="btn btn-gh btn-xs" id="copy-btn" onclick="copyId()">複製</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;margin-top:18px">
+              <button class="btn btn-dk" onclick="resetNew()">再建立一筆</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- end right content -->
+    </div><!-- end flex row -->
+  </div>
+</div>
+
+<!-- ══════════ DASHBOARD ══════════ -->
+<div class="screen" id="p-dash">
+  <div class="tb">
+    <div class="tb-title">預約營運看板</div>
+    <div class="tb-right">
+      <span style="font-size:11px" id="dash-ts">更新於 14:32</span>
+      <button class="btn btn-gh btn-xs" onclick="rdash()">↻ 刷新</button>
+      <div class="av">管</div>
+    </div>
+  </div>
+  <div class="ct">
+    <!-- Filter -->
+    <div class="frow" style="margin-bottom:18px">
+      <div class="fg"><div class="fl">分店</div>
+        <select class="fc" id="db-br" onchange="rdash()">
+          <option value="">全部分店</option>
+          <option value="台北信義店">台北信義店</option>
+          <option value="台北中山店">台北中山店</option>
+          <option value="新北板橋店">新北板橋店</option>
+        </select>
+      </div>
+      <div class="fg"><div class="fl">日期</div>
+        <input type="date" class="fc" id="db-dt" onchange="rdash()">
+      </div>
+    </div>
+    <!-- Branch grids -->
+    <div id="dash-body"></div>
+  </div>
+</div>
+
+</div><!-- #main -->
+
+<!-- Cancel modal -->
+<div class="mo-bg" id="mo">
+  <div class="mo">
+    <h3>確認取消預約</h3>
+    <p>取消後將釋放所有配對技師班次與床位。<br/>此操作無法復原，確定繼續嗎？</p>
+    <div class="mo-btns">
+      <button class="btn btn-gh" onclick="hideMo()">返回</button>
+      <button class="btn btn-rd" onclick="doCancel()">確認取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div class="mo-bg" id="del-mo">
+  <div class="mo">
+    <h3>確認刪除預約</h3>
+    <p id="del-mo-body">刪除後資料將無法復原。確定要刪除嗎？</p>
+    <div class="mo-btns">
+      <button class="btn btn-gh" onclick="hideDelMo()">取消</button>
+      <button class="btn btn-rd" onclick="doDelete()">確認刪除</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popover -->
+<div id="popover" class="popover">
+  <div class="pop-head" id="pop-head"></div>
+  <div class="pop-lbl">狀態</div>
+  <div class="pill-row" id="pop-pills"></div>
+  <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--bd2)">
+    <div id="pop-can-default">
+      <button class="btn btn-xs" style="background:#f5edec;color:#882828;border:1px solid #e0b8b8;width:100%;justify-content:center" onclick="showPopCancel()">取消此預約</button>
+    </div>
+    <div id="pop-can-confirm" style="display:none">
+      <div style="font-size:11px;color:var(--cn-tx);background:var(--cn-bg);border-radius:var(--r);padding:8px 10px;margin-bottom:8px;line-height:1.5">確認取消此預約？<br>操作後班次與床位將自動釋放。</div>
+      <div style="display:flex;gap:6px">
+        <button class="btn btn-gh btn-xs" style="flex:1;justify-content:center" onclick="hidePopCancel()">返回</button>
+        <button class="btn btn-xs btn-rd" style="flex:1;justify-content:center" onclick="doPopCancel()">確認取消</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── Constants ───────────────────────────────
+const SM = { CONFIRMED:'已確認', PENDING:'待確認', CANCELLED:'已取消' };
+const ST = { CONFIRMED:'tok', PENDING:'tpd', CANCELLED:'tcn' };
+const BR_NAMES = { 1:'台北信義店', 2:'台北中山店', 3:'新北板橋店' };
+const SVCS = [
+  { id:1, name:'全身指壓按摩', dur:60, price:1200 },
+  { id:2, name:'腳底反射療法', dur:40, price:800  },
+  { id:3, name:'肩頸舒緩護理', dur:30, price:650  },
+  { id:4, name:'精油芳療全身', dur:90, price:1800 },
+];
+const MOCK_SLOTS = ['10:00 – 11:30','11:30 – 13:00','13:00 – 14:30','14:30 – 16:00','16:00 – 17:30'];
+
+// ─── Shared store (sync with frontend) ──────
+const STORE_KEY = 'YZ_BOOKINGS';
+function getFrontendBks() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch { return []; }
+}
+function saveFrontendBks(data) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+// ─── Booking data (seed + merge frontend) ────
+const BKS_SEED = [
+  // ── 台北信義店 (10 beds: A-01~A-04, B-01~B-04, C-01~C-02) ──
+  // 10:00 – 11:30  → 7/10 beds
+  { id:'BK-260415-0001', br:'台北信義店', dt:'2026-04-15', sl:'10:00 – 11:30', n:3, nm:'林小華', st:'CONFIRMED', cr:'04-12 09:11', ph:'0911-111-111', em:'lin@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'王技師',p:1200},{sv:'肩頸舒緩',bed:'A-02',th:'李技師',p:650},{sv:'腳底反射',bed:'A-03',th:'陳技師',p:800}]},
+  { id:'BK-260415-0002', br:'台北信義店', dt:'2026-04-15', sl:'10:00 – 11:30', n:2, nm:'張大偉', st:'CONFIRMED', cr:'04-13 14:20', ph:'0922-222-222', em:'chang@ex.com', note:'', gs:[{sv:'精油芳療',bed:'B-01',th:'林技師',p:1800},{sv:'全身指壓',bed:'B-02',th:'趙技師',p:1200}]},
+  { id:'BK-260415-0003', br:'台北信義店', dt:'2026-04-15', sl:'10:00 – 11:30', n:2, nm:'吳雅婷', st:'PENDING',   cr:'04-14 08:00', ph:'0933-001-001', em:'wu1@ex.com', note:'', gs:[{sv:'肩頸舒緩',bed:'B-03',th:'待配對',p:650},{sv:'腳底反射',bed:'C-01',th:'待配對',p:800}]},
+  // 11:30 – 13:00  → 7/10 beds
+  { id:'BK-260415-0004', br:'台北信義店', dt:'2026-04-15', sl:'11:30 – 13:00', n:2, nm:'黃美玲', st:'CONFIRMED', cr:'04-13 16:05', ph:'0933-333-333', em:'huang@ex.com', note:'輕力道', gs:[{sv:'精油芳療',bed:'A-01',th:'王技師',p:1800},{sv:'全身指壓',bed:'A-02',th:'李技師',p:1200}]},
+  { id:'BK-260415-0005', br:'台北信義店', dt:'2026-04-15', sl:'11:30 – 13:00', n:3, nm:'楊建宏', st:'CONFIRMED', cr:'04-12 11:00', ph:'0944-002-002', em:'yang@ex.com', note:'', gs:[{sv:'腳底反射',bed:'A-03',th:'陳技師',p:800},{sv:'肩頸舒緩',bed:'B-01',th:'林技師',p:650},{sv:'全身指壓',bed:'B-02',th:'趙技師',p:1200}]},
+  { id:'BK-260415-0006', br:'台北信義店', dt:'2026-04-15', sl:'11:30 – 13:00', n:2, nm:'蔡雅琪', st:'PENDING',   cr:'04-14 09:30', ph:'0955-003-003', em:'tsai1@ex.com', note:'', gs:[{sv:'精油芳療',bed:'B-03',th:'待配對',p:1800},{sv:'腳底反射',bed:'B-04',th:'待配對',p:800}]},
+  // 13:00 – 14:30  → 7/10 beds
+  { id:'BK-260415-0007', br:'台北信義店', dt:'2026-04-15', sl:'13:00 – 14:30', n:4, nm:'陳小明', st:'CONFIRMED', cr:'04-10 11:32', ph:'0912-345-678', em:'chen@ex.com', note:'輕力道', gs:[{sv:'全身指壓',bed:'A-01',th:'王技師',p:1200},{sv:'腳底反射',bed:'A-02',th:'李技師',p:800},{sv:'精油芳療',bed:'A-03',th:'陳技師',p:1800},{sv:'肩頸舒緩',bed:'A-04',th:'林技師',p:650}]},
+  { id:'BK-260415-0008', br:'台北信義店', dt:'2026-04-15', sl:'13:00 – 14:30', n:2, nm:'鄭雅文', st:'CONFIRMED', cr:'04-11 13:00', ph:'0966-004-004', em:'cheng@ex.com', note:'', gs:[{sv:'全身指壓',bed:'B-01',th:'趙技師',p:1200},{sv:'腳底反射',bed:'B-02',th:'待配對',p:800}]},
+  { id:'BK-260415-0009', br:'台北信義店', dt:'2026-04-15', sl:'13:00 – 14:30', n:1, nm:'謝承翰', st:'PENDING',   cr:'04-14 15:22', ph:'0977-005-005', em:'hsieh@ex.com', note:'', gs:[{sv:'肩頸舒緩',bed:'C-01',th:'待配對',p:650}]},
+  // 14:30 – 16:00  → 7/10 beds
+  { id:'BK-260415-0010', br:'台北信義店', dt:'2026-04-15', sl:'14:30 – 16:00', n:3, nm:'蔡依珊', st:'CONFIRMED', cr:'04-11 13:00', ph:'0955-555-555', em:'tsai@ex.com', note:'', gs:[{sv:'肩頸舒緩',bed:'A-01',th:'王技師',p:650},{sv:'肩頸舒緩',bed:'A-02',th:'李技師',p:650},{sv:'腳底反射',bed:'A-03',th:'陳技師',p:800}]},
+  { id:'BK-260415-0011', br:'台北信義店', dt:'2026-04-15', sl:'14:30 – 16:00', n:2, nm:'許宗翰', st:'CONFIRMED', cr:'04-12 10:45', ph:'0988-006-006', em:'hsu2@ex.com', note:'', gs:[{sv:'精油芳療',bed:'B-01',th:'趙技師',p:1800},{sv:'全身指壓',bed:'B-02',th:'林技師',p:1200}]},
+  { id:'BK-260415-0012', br:'台北信義店', dt:'2026-04-15', sl:'14:30 – 16:00', n:2, nm:'江淑芬', st:'PENDING',   cr:'04-14 18:00', ph:'0911-007-007', em:'jiang@ex.com', note:'', gs:[{sv:'腳底反射',bed:'B-03',th:'待配對',p:800},{sv:'肩頸舒緩',bed:'C-01',th:'待配對',p:650}]},
+  // 16:00 – 17:30  → 7/10 beds
+  { id:'BK-260415-0013', br:'台北信義店', dt:'2026-04-15', sl:'16:00 – 17:30', n:2, nm:'劉大文', st:'CONFIRMED', cr:'04-10 09:00', ph:'0922-008-008', em:'liu2@ex.com', note:'', gs:[{sv:'精油芳療',bed:'A-01',th:'王技師',p:1800},{sv:'腳底反射',bed:'A-02',th:'李技師',p:800}]},
+  { id:'BK-260415-0014', br:'台北信義店', dt:'2026-04-15', sl:'16:00 – 17:30', n:3, nm:'葉怡君', st:'CONFIRMED', cr:'04-12 14:30', ph:'0933-009-009', em:'yeh2@ex.com', note:'輕力道', gs:[{sv:'全身指壓',bed:'A-03',th:'陳技師',p:1200},{sv:'肩頸舒緩',bed:'B-01',th:'林技師',p:650},{sv:'腳底反射',bed:'B-02',th:'趙技師',p:800}]},
+  { id:'BK-260415-0015', br:'台北信義店', dt:'2026-04-15', sl:'16:00 – 17:30', n:2, nm:'邱明哲', st:'PENDING',   cr:'04-14 21:00', ph:'0944-010-010', em:'chiu@ex.com', note:'', gs:[{sv:'精油芳療',bed:'B-03',th:'待配對',p:1800},{sv:'全身指壓',bed:'B-04',th:'待配對',p:1200}]},
+  // 18:00 – 19:30  → 7/10 beds
+  { id:'BK-260415-0016', br:'台北信義店', dt:'2026-04-15', sl:'18:00 – 19:30', n:4, nm:'趙麗娟', st:'CONFIRMED', cr:'04-11 16:00', ph:'0955-011-011', em:'zhao@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'王技師',p:1200},{sv:'精油芳療',bed:'A-02',th:'李技師',p:1800},{sv:'肩頸舒緩',bed:'A-03',th:'陳技師',p:650},{sv:'腳底反射',bed:'A-04',th:'林技師',p:800}]},
+  { id:'BK-260415-0017', br:'台北信義店', dt:'2026-04-15', sl:'18:00 – 19:30', n:2, nm:'范志強', st:'CONFIRMED', cr:'04-13 11:20', ph:'0966-012-012', em:'fan@ex.com', note:'', gs:[{sv:'腳底反射',bed:'B-01',th:'趙技師',p:800},{sv:'全身指壓',bed:'B-02',th:'待配對',p:1200}]},
+  { id:'BK-260415-0018', br:'台北信義店', dt:'2026-04-15', sl:'18:00 – 19:30', n:1, nm:'沈宜蓁', st:'PENDING',   cr:'04-14 22:10', ph:'0977-013-013', em:'shen@ex.com', note:'', gs:[{sv:'肩頸舒緩',bed:'C-01',th:'待配對',p:650}]},
+
+  // ── 台北中山店 (9 beds: A-01~A-04, B-01~B-04, C-01) ──
+  // 10:00 – 11:30  → 6/9 beds
+  { id:'BK-260415-0019', br:'台北中山店', dt:'2026-04-15', sl:'10:00 – 11:30', n:3, nm:'劉天明', st:'CONFIRMED', cr:'04-09 10:00', ph:'0977-777-777', em:'liu@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'鄭技師',p:1200},{sv:'腳底反射',bed:'A-02',th:'吳技師',p:800},{sv:'精油芳療',bed:'A-03',th:'黃技師',p:1800}]},
+  { id:'BK-260415-0020', br:'台北中山店', dt:'2026-04-15', sl:'10:00 – 11:30', n:2, nm:'方淑惠', st:'CONFIRMED', cr:'04-12 08:30', ph:'0988-014-014', em:'fang@ex.com', note:'輕力道', gs:[{sv:'肩頸舒緩',bed:'B-01',th:'謝技師',p:650},{sv:'腳底反射',bed:'B-02',th:'鄭技師',p:800}]},
+  { id:'BK-260415-0021', br:'台北中山店', dt:'2026-04-15', sl:'10:00 – 11:30', n:1, nm:'高志平', st:'PENDING',   cr:'04-14 07:45', ph:'0911-015-015', em:'kao@ex.com', note:'', gs:[{sv:'全身指壓',bed:'C-01',th:'待配對',p:1200}]},
+  // 11:30 – 13:00  → 6/9 beds
+  { id:'BK-260415-0022', br:'台北中山店', dt:'2026-04-15', sl:'11:30 – 13:00', n:2, nm:'錢玉芬', st:'CONFIRMED', cr:'04-10 14:00', ph:'0922-016-016', em:'chien@ex.com', note:'', gs:[{sv:'精油芳療',bed:'A-01',th:'鄭技師',p:1800},{sv:'全身指壓',bed:'A-02',th:'吳技師',p:1200}]},
+  { id:'BK-260415-0023', br:'台北中山店', dt:'2026-04-15', sl:'11:30 – 13:00', n:3, nm:'孫俊傑', st:'CONFIRMED', cr:'04-11 10:30', ph:'0933-017-017', em:'sun@ex.com', note:'', gs:[{sv:'腳底反射',bed:'B-01',th:'黃技師',p:800},{sv:'肩頸舒緩',bed:'B-02',th:'謝技師',p:650},{sv:'全身指壓',bed:'B-03',th:'鄭技師',p:1200}]},
+  { id:'BK-260415-0024', br:'台北中山店', dt:'2026-04-15', sl:'11:30 – 13:00', n:1, nm:'羅曉燕', st:'PENDING',   cr:'04-14 11:00', ph:'0944-018-018', em:'lo@ex.com', note:'', gs:[{sv:'精油芳療',bed:'C-01',th:'待配對',p:1800}]},
+  // 13:00 – 14:30  → 7/9 beds
+  { id:'BK-260415-0025', br:'台北中山店', dt:'2026-04-15', sl:'13:00 – 14:30', n:4, nm:'許志偉', st:'CONFIRMED', cr:'04-12 15:00', ph:'0988-888-888', em:'hsu@ex.com', note:'', gs:[{sv:'精油芳療',bed:'A-01',th:'鄭技師',p:1800},{sv:'全身指壓',bed:'A-02',th:'吳技師',p:1200},{sv:'腳底反射',bed:'A-03',th:'黃技師',p:800},{sv:'肩頸舒緩',bed:'A-04',th:'謝技師',p:650}]},
+  { id:'BK-260415-0026', br:'台北中山店', dt:'2026-04-15', sl:'13:00 – 14:30', n:2, nm:'彭雅惠', st:'CONFIRMED', cr:'04-13 12:00', ph:'0955-019-019', em:'peng@ex.com', note:'輕力道', gs:[{sv:'全身指壓',bed:'B-01',th:'鄭技師',p:1200},{sv:'腳底反射',bed:'B-02',th:'待配對',p:800}]},
+  { id:'BK-260415-0027', br:'台北中山店', dt:'2026-04-15', sl:'13:00 – 14:30', n:1, nm:'鄭博文', st:'PENDING',   cr:'04-14 13:40', ph:'0966-020-020', em:'cheng2@ex.com', note:'', gs:[{sv:'精油芳療',bed:'C-01',th:'待配對',p:1800}]},
+  // 14:30 – 16:00  → 6/9 beds
+  { id:'BK-260415-0028', br:'台北中山店', dt:'2026-04-15', sl:'14:30 – 16:00', n:3, nm:'陳宜君', st:'CONFIRMED', cr:'04-11 09:00', ph:'0977-021-021', em:'chen2@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'鄭技師',p:1200},{sv:'肩頸舒緩',bed:'A-02',th:'吳技師',p:650},{sv:'腳底反射',bed:'A-03',th:'黃技師',p:800}]},
+  { id:'BK-260415-0029', br:'台北中山店', dt:'2026-04-15', sl:'14:30 – 16:00', n:2, nm:'林俊宏', st:'CONFIRMED', cr:'04-12 16:00', ph:'0988-022-022', em:'lin2@ex.com', note:'', gs:[{sv:'精油芳療',bed:'B-01',th:'謝技師',p:1800},{sv:'全身指壓',bed:'B-02',th:'鄭技師',p:1200}]},
+  { id:'BK-260415-0030', br:'台北中山店', dt:'2026-04-15', sl:'14:30 – 16:00', n:1, nm:'洪嘉慧', st:'PENDING',   cr:'04-14 17:30', ph:'0911-023-023', em:'hong@ex.com', note:'', gs:[{sv:'腳底反射',bed:'C-01',th:'待配對',p:800}]},
+  // 16:00 – 17:30  → 6/9 beds
+  { id:'BK-260415-0031', br:'台北中山店', dt:'2026-04-15', sl:'16:00 – 17:30', n:3, nm:'李宗翰', st:'CONFIRMED', cr:'04-10 15:00', ph:'0922-024-024', em:'li@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'鄭技師',p:1200},{sv:'精油芳療',bed:'A-02',th:'吳技師',p:1800},{sv:'肩頸舒緩',bed:'A-03',th:'黃技師',p:650}]},
+  { id:'BK-260415-0032', br:'台北中山店', dt:'2026-04-15', sl:'16:00 – 17:30', n:2, nm:'王雅琪', st:'CONFIRMED', cr:'04-13 14:10', ph:'0933-025-025', em:'wang@ex.com', note:'輕力道', gs:[{sv:'腳底反射',bed:'B-01',th:'謝技師',p:800},{sv:'全身指壓',bed:'B-02',th:'鄭技師',p:1200}]},
+  { id:'BK-260415-0033', br:'台北中山店', dt:'2026-04-15', sl:'16:00 – 17:30', n:1, nm:'吳信宏', st:'PENDING',   cr:'04-14 19:20', ph:'0944-026-026', em:'wu2@ex.com', note:'', gs:[{sv:'精油芳療',bed:'C-01',th:'待配對',p:1800}]},
+  // 18:00 – 19:30  → 6/9 beds
+  { id:'BK-260415-0034', br:'台北中山店', dt:'2026-04-15', sl:'18:00 – 19:30', n:4, nm:'張碧珠', st:'CONFIRMED', cr:'04-11 18:00', ph:'0955-027-027', em:'chang2@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'鄭技師',p:1200},{sv:'腳底反射',bed:'A-02',th:'吳技師',p:800},{sv:'肩頸舒緩',bed:'A-03',th:'黃技師',p:650},{sv:'精油芳療',bed:'A-04',th:'謝技師',p:1800}]},
+  { id:'BK-260415-0035', br:'台北中山店', dt:'2026-04-15', sl:'18:00 – 19:30', n:2, nm:'黃國棟', st:'CONFIRMED', cr:'04-13 17:00', ph:'0966-028-028', em:'huang2@ex.com', note:'', gs:[{sv:'全身指壓',bed:'B-01',th:'鄭技師',p:1200},{sv:'腳底反射',bed:'B-02',th:'待配對',p:800}]},
+
+  // ── 新北板橋店 (8 beds: A-01~A-04, B-01~B-04) ──
+  // 10:00 – 11:30  → 5/8 beds
+  { id:'BK-260415-0036', br:'新北板橋店', dt:'2026-04-15', sl:'10:00 – 11:30', n:3, nm:'葉美慧', st:'CONFIRMED', cr:'04-13 10:30', ph:'0999-999-999', em:'yeh@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'周技師',p:1200},{sv:'肩頸舒緩',bed:'A-02',th:'吳技師',p:650},{sv:'腳底反射',bed:'A-03',th:'徐技師',p:800}]},
+  { id:'BK-260415-0037', br:'新北板橋店', dt:'2026-04-15', sl:'10:00 – 11:30', n:2, nm:'簡文雄', st:'CONFIRMED', cr:'04-12 09:30', ph:'0911-029-029', em:'chien2@ex.com', note:'', gs:[{sv:'精油芳療',bed:'B-01',th:'蔡技師',p:1800},{sv:'全身指壓',bed:'B-02',th:'周技師',p:1200}]},
+  // 11:30 – 13:00  → 6/8 beds
+  { id:'BK-260415-0038', br:'新北板橋店', dt:'2026-04-15', sl:'11:30 – 13:00', n:2, nm:'吳淑貞', st:'CONFIRMED', cr:'04-10 13:00', ph:'0922-030-030', em:'wu3@ex.com', note:'輕力道', gs:[{sv:'全身指壓',bed:'A-01',th:'周技師',p:1200},{sv:'腳底反射',bed:'A-02',th:'吳技師',p:800}]},
+  { id:'BK-260415-0039', br:'新北板橋店', dt:'2026-04-15', sl:'11:30 – 13:00', n:3, nm:'陳文龍', st:'CONFIRMED', cr:'04-11 11:00', ph:'0933-031-031', em:'chen3@ex.com', note:'', gs:[{sv:'精油芳療',bed:'A-03',th:'徐技師',p:1800},{sv:'肩頸舒緩',bed:'B-01',th:'蔡技師',p:650},{sv:'全身指壓',bed:'B-02',th:'周技師',p:1200}]},
+  { id:'BK-260415-0040', br:'新北板橋店', dt:'2026-04-15', sl:'11:30 – 13:00', n:1, nm:'翁雅玲', st:'PENDING',   cr:'04-14 10:30', ph:'0944-032-032', em:'weng@ex.com', note:'', gs:[{sv:'腳底反射',bed:'B-03',th:'待配對',p:800}]},
+  // 13:00 – 14:30  → 6/8 beds
+  { id:'BK-260415-0041', br:'新北板橋店', dt:'2026-04-15', sl:'13:00 – 14:30', n:4, nm:'廖俊民', st:'CONFIRMED', cr:'04-12 12:00', ph:'0955-033-033', em:'liao@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'周技師',p:1200},{sv:'腳底反射',bed:'A-02',th:'吳技師',p:800},{sv:'肩頸舒緩',bed:'A-03',th:'徐技師',p:650},{sv:'精油芳療',bed:'A-04',th:'蔡技師',p:1800}]},
+  { id:'BK-260415-0042', br:'新北板橋店', dt:'2026-04-15', sl:'13:00 – 14:30', n:2, nm:'徐秀蓮', st:'CONFIRMED', cr:'04-13 11:30', ph:'0966-034-034', em:'hsu3@ex.com', note:'輕力道', gs:[{sv:'全身指壓',bed:'B-01',th:'周技師',p:1200},{sv:'腳底反射',bed:'B-02',th:'待配對',p:800}]},
+  // 14:30 – 16:00  → 5/8 beds
+  { id:'BK-260415-0043', br:'新北板橋店', dt:'2026-04-15', sl:'14:30 – 16:00', n:3, nm:'曾文豪', st:'CONFIRMED', cr:'04-11 14:00', ph:'0977-035-035', em:'tseng@ex.com', note:'', gs:[{sv:'精油芳療',bed:'A-01',th:'蔡技師',p:1800},{sv:'全身指壓',bed:'A-02',th:'周技師',p:1200},{sv:'腳底反射',bed:'A-03',th:'吳技師',p:800}]},
+  { id:'BK-260415-0044', br:'新北板橋店', dt:'2026-04-15', sl:'14:30 – 16:00', n:2, nm:'潘俊宏', st:'PENDING',   cr:'04-14 16:15', ph:'0988-036-036', em:'pan@ex.com', note:'', gs:[{sv:'肩頸舒緩',bed:'B-01',th:'待配對',p:650},{sv:'全身指壓',bed:'B-02',th:'待配對',p:1200}]},
+  // 16:00 – 17:30  → 5/8 beds
+  { id:'BK-260415-0045', br:'新北板橋店', dt:'2026-04-15', sl:'16:00 – 17:30', n:2, nm:'賴淑婷', st:'CONFIRMED', cr:'04-12 15:30', ph:'0911-037-037', em:'lai@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'周技師',p:1200},{sv:'腳底反射',bed:'A-02',th:'吳技師',p:800}]},
+  { id:'BK-260415-0046', br:'新北板橋店', dt:'2026-04-15', sl:'16:00 – 17:30', n:2, nm:'施雅婷', st:'CONFIRMED', cr:'04-13 10:00', ph:'0922-038-038', em:'shih@ex.com', note:'輕力道', gs:[{sv:'精油芳療',bed:'B-01',th:'蔡技師',p:1800},{sv:'肩頸舒緩',bed:'B-02',th:'徐技師',p:650}]},
+  { id:'BK-260415-0047', br:'新北板橋店', dt:'2026-04-15', sl:'16:00 – 17:30', n:1, nm:'游承學', st:'PENDING',   cr:'04-14 20:00', ph:'0933-039-039', em:'yu@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-03',th:'待配對',p:1200}]},
+  // 18:00 – 19:30  → 6/8 beds
+  { id:'BK-260415-0048', br:'新北板橋店', dt:'2026-04-15', sl:'18:00 – 19:30', n:3, nm:'鍾雅芬', st:'CONFIRMED', cr:'04-11 17:30', ph:'0944-040-040', em:'chung@ex.com', note:'', gs:[{sv:'全身指壓',bed:'A-01',th:'周技師',p:1200},{sv:'精油芳療',bed:'A-02',th:'吳技師',p:1800},{sv:'肩頸舒緩',bed:'A-03',th:'徐技師',p:650}]},
+  { id:'BK-260415-0049', br:'新北板橋店', dt:'2026-04-15', sl:'18:00 – 19:30', n:3, nm:'馬志明', st:'CONFIRMED', cr:'04-13 16:30', ph:'0955-041-041', em:'ma@ex.com', note:'', gs:[{sv:'腳底反射',bed:'B-01',th:'蔡技師',p:800},{sv:'全身指壓',bed:'B-02',th:'周技師',p:1200},{sv:'腳底反射',bed:'B-03',th:'待配對',p:800}]},
+];
+
+// Merge: seed bookings + frontend bookings from localStorage
+// Frontend bookings are authoritative (cancel/status changes propagate back via localStorage)
+function getMergedBks() {
+  const frontendBks = getFrontendBks();
+  const frontendIds = new Set(frontendBks.map(b => b.id));
+  // Seed records not overridden by frontend
+  const seedOnly = BKS_SEED.filter(b => !frontendIds.has(b.id));
+  return [...seedOnly, ...frontendBks];
+}
+
+// BKS is a live proxy-like array — always re-read via getMergedBks()
+let BKS = getMergedBks();
+function refreshBKS() { BKS = getMergedBks(); }
+
+// Persist any admin-side change back to localStorage (for frontend cancel lookup)
+function persistChange(id, changes) {
+  refreshBKS();
+  const bks = getFrontendBks();
+  const idx = bks.findIndex(b => b.id === id);
+  if (idx > -1) { Object.assign(bks[idx], changes); saveFrontendBks(bks); }
+  // Also update seed copy in memory
+  const si = BKS_SEED.findIndex(b => b.id === id);
+  if (si > -1) Object.assign(BKS_SEED[si], changes);
+  refreshBKS();
+}
+
+// ─── Dashboard grid data: brid → slot → bed → {nm,sv,th,bkid} ──
+const BEDS_BY_BR = {
+  '台北信義店': ['A-01','A-02','A-03','A-04','B-01','B-02','B-03','B-04','C-01','C-02'],
+  '台北中山店': ['A-01','A-02','A-03','A-04','B-01','B-02','B-03','B-04','C-01'],
+  '新北板橋店': ['A-01','A-02','A-03','A-04','B-01','B-02','B-03','B-04'],
+};
+const SLOTS_ALL = ['10:00 – 11:30','11:30 – 13:00','13:00 – 14:30','14:30 – 16:00','16:00 – 17:30','18:00 – 19:30'];
+
+// Build grid data from BKS
+function buildGrid(branchName, date) {
+  const beds = BEDS_BY_BR[branchName] || [];
+  const grid = {};
+  SLOTS_ALL.forEach(sl => {
+    grid[sl] = {};
+    beds.forEach(b => { grid[sl][b] = null; });
+  });
+  BKS.filter(b => b.br === branchName && b.dt === date && b.st !== 'CANCELLED').forEach(bk => {
+    bk.gs.forEach((g, gIdx) => {
+      if (grid[bk.sl] && grid[bk.sl][g.bed] !== undefined) {
+        grid[bk.sl][g.bed] = { nm: bk.nm, sv: g.sv, th: g.th, bkid: bk.id, guestNum: gIdx + 1, total: bk.gs.length };
+      }
+    });
+  });
+  return { grid, beds };
+}
+
+// Color palette for booking groups (muted, distinguishable)
+const BK_COLORS = [
+  { bg:'#d6e4d6', tx:'#2a4a2a' }, // sage
+  { bg:'#d6dff0', tx:'#1e3060' }, // slate blue
+  { bg:'#f0d6d6', tx:'#6a1e1e' }, // dusty rose
+  { bg:'#f0e8d0', tx:'#5a3c10' }, // warm sand
+  { bg:'#d0e8e8', tx:'#1a4040' }, // teal
+  { bg:'#e8d6f0', tx:'#48226a' }, // lavender
+  { bg:'#f0e0c8', tx:'#5a3010' }, // caramel
+  { bg:'#d4ecd4', tx:'#1a401a' }, // mint
+];
+let bkColorMap = {};
+let bkColorIdx = 0;
+function getBkColor(bkid) {
+  if (!bkColorMap[bkid]) {
+    bkColorMap[bkid] = BK_COLORS[bkColorIdx % BK_COLORS.length];
+    bkColorIdx++;
+  }
+  return bkColorMap[bkid];
+}
+
+// ─── Navigation ─────────────────────────────
+let cur = null;
+
+function go(p) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
+  if (p==='list')   { document.getElementById('p-list').classList.add('on');   document.getElementById('nav-list').classList.add('on'); rl(); }
+  if (p==='detail') { document.getElementById('p-detail').classList.add('on'); document.getElementById('nav-list').classList.add('on'); rd(); }
+  if (p==='new')    { document.getElementById('p-new').classList.add('on');    document.getElementById('nav-list').classList.add('on'); resetNew(); }
+  if (p==='dash')   { document.getElementById('p-dash').classList.add('on');   document.getElementById('nav-dash').classList.add('on'); rdash(); }
+  window.scrollTo(0,0);
+}
+
+// ─── List (paginated, 10 per page) ──────────
+const PAGE_SIZE = 10;
+let listPage = 1;
+let listData  = [];
+
+function rl() {
+  listPage = 1; // reset to first page on filter change
+  rlist();
+}
+
+function rlist() {
+  refreshBKS();
+  const bf  = document.getElementById('f-br').value;
+  const df  = document.getElementById('f-dt').value;
+  const idf = (document.getElementById('f-id').value || '').trim().toUpperCase();
+  const nmf = (document.getElementById('f-nm').value || '').trim();
+  listData = BKS.filter(b => {
+    if (bf  && !b.br.includes(bf)) return false;
+    if (df  && b.dt !== df) return false;
+    if (idf && !b.id.includes(idf)) return false;
+    if (nmf && !b.nm.includes(nmf)) return false;
+    return true;
+  });
+  const total = listData.length;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (listPage > totalPages) listPage = totalPages;
+
+  // Summary stats
+  const todayBks = BKS.filter(b => b.dt === document.getElementById('f-dt').value || b.dt === new Date().toISOString().slice(0,10));
+  document.getElementById('stat-total').textContent = todayBks.length;
+  document.getElementById('stat-confirmed').textContent = todayBks.filter(b=>b.st==='CONFIRMED').length;
+  document.getElementById('stat-pending').textContent = todayBks.filter(b=>b.st==='PENDING').length;
+
+  document.getElementById('lc').textContent = total;
+  const tb = document.getElementById('lb');
+  tb.innerHTML = '';
+  const start = (listPage - 1) * PAGE_SIZE;
+  listData.slice(start, start + PAGE_SIZE).forEach(b => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-family:monospace;font-size:11px">${b.id}</td>
+      <td>${b.br}</td>
+      <td>${b.dt}</td>
+      <td style="white-space:nowrap">${b.sl}</td>
+      <td style="text-align:center">${b.n}</td>
+      <td>${b.nm}</td>
+      <td><span class="tag ${ST[b.st]}" id="tag-${b.id}">${SM[b.st]}</span></td>
+      <td style="font-size:11px;color:var(--tx3)">${b.cr}</td>
+      <td>
+        <div style="display:flex;gap:5px;align-items:center">
+          <button class="btn btn-gh btn-xs" onclick="refreshBKS();cur=BKS.find(x=>x.id==='${b.id}');go('detail')">查看</button>
+          <button class="btn btn-gh btn-xs edit-btn" onclick="event.stopPropagation();openPop('${b.id}',this)">編輯</button>
+        </div>
+      </td>`;
+    tb.appendChild(tr);
+  });
+
+  // Render pager
+  const pager = document.getElementById('list-pager');
+  pager.innerHTML = '';
+
+  const prev = document.createElement('button');
+  prev.className = 'pb2';
+  prev.textContent = '‹';
+  prev.disabled = listPage <= 1;
+  prev.onclick = () => { listPage--; rlist(); };
+  pager.appendChild(prev);
+
+  const pageRange = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= listPage - 1 && i <= listPage + 1)) {
+      pageRange.push(i);
+    } else if (pageRange[pageRange.length - 1] !== '…') {
+      pageRange.push('…');
+    }
+  }
+  pageRange.forEach(p => {
+    const btn = document.createElement('button');
+    if (p === '…') {
+      btn.className = 'pb2'; btn.textContent = '…'; btn.disabled = true;
+      btn.style.cursor = 'default'; btn.style.border = 'none'; btn.style.background = 'transparent';
+    } else {
+      btn.className = 'pb2' + (p === listPage ? ' on' : '');
+      btn.textContent = p;
+      btn.onclick = () => { listPage = p; rlist(); };
+    }
+    pager.appendChild(btn);
+  });
+
+  const next = document.createElement('button');
+  next.className = 'pb2';
+  next.textContent = '›';
+  next.disabled = listPage >= totalPages;
+  next.onclick = () => { listPage++; rlist(); };
+  pager.appendChild(next);
+}
+
+// ─── Detail ──────────────────────────────────
+function rd() {
+  if (!cur) return;
+  const b = cur;
+  document.getElementById('bk-bc').textContent = b.id;
+  document.getElementById('d-id').textContent  = b.id;
+  document.getElementById('d-st').textContent  = SM[b.st];
+  document.getElementById('d-br').textContent  = b.br;
+  document.getElementById('d-da').textContent  = b.dt;
+  document.getElementById('d-sl').textContent  = b.sl;
+  document.getElementById('d-nu').textContent  = b.n + ' 人';
+  document.getElementById('d-cr').textContent  = b.cr;
+  document.getElementById('d-nm').textContent  = b.nm;
+  document.getElementById('d-ph').textContent  = b.ph;
+  document.getElementById('d-em').textContent  = b.em;
+  document.getElementById('d-note').value      = b.note;
+  const stag = document.getElementById('d-stag');
+  stag.className = 'tag ' + ST[b.st];
+  stag.textContent = SM[b.st];
+  const cb = document.getElementById('cancel-btn');
+  cb.disabled = b.st === 'CANCELLED';
+  const tbody = document.getElementById('d-gb');
+  tbody.innerHTML = '';
+  let tot = 0;
+  b.gs.forEach((g,i) => {
+    tot += g.p;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="font-weight:500;color:var(--tx2)">第${i+1}位</td><td>${g.sv}</td><td style="font-family:monospace;font-size:11px">${g.bed}</td><td>${g.th}</td><td>$${g.p.toLocaleString()}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('d-tot').textContent = '$' + tot.toLocaleString();
+}
+
+function showMo() { document.getElementById('mo').classList.add('show'); }
+function hideMo()  { document.getElementById('mo').classList.remove('show'); }
+function doCancel() {
+  hideMo();
+  if (cur) {
+    cur.st = 'CANCELLED';
+    persistChange(cur.id, { st: 'CANCELLED' });
+    rd();
+    showToast('預約已取消，班次與床位已釋放');
+  }
+}
+
+function changeStatus(bkid, newSt) {
+  refreshBKS();
+  const b = BKS.find(x => x.id === bkid);
+  if (!b) return;
+  b.st = newSt;
+  persistChange(bkid, { st: newSt });
+  const tag = document.getElementById('tag-' + bkid);
+  if (tag) { tag.className = 'tag ' + ST[newSt]; tag.textContent = SM[newSt]; }
+  if (cur && cur.id === bkid) rd();
+}
+
+// ─── Popover ─────────────────────────────────
+let popTarget = null;
+const PILL_CLS = { CONFIRMED:'aok', PENDING:'apd', CANCELLED:'acn' };
+
+function openPop(bkid, btn) {
+  const pop = document.getElementById('popover');
+  // Toggle: close if already open for same booking
+  if (pop.classList.contains('show') && popTarget && popTarget.id === bkid) {
+    closePopover(); return;
+  }
+  popTarget = BKS.find(b => b.id === bkid);
+  if (!popTarget) return;
+  // Header
+  document.getElementById('pop-head').textContent = `${popTarget.id}  ·  ${popTarget.nm}`;
+  // Pills
+  refreshPills();
+  // Reset cancel zone
+  hidePopCancel();
+  // Show + position
+  pop.classList.add('show');
+  const rect = btn.getBoundingClientRect();
+  let top  = rect.bottom + 6;
+  let left = rect.left;
+  const pw = 218, ph = 200;
+  if (left + pw > window.innerWidth  - 12) left = window.innerWidth  - pw - 12;
+  if (top  + ph > window.innerHeight - 12) top  = rect.top - ph - 6;
+  pop.style.top  = top  + 'px';
+  pop.style.left = left + 'px';
+}
+
+function closePopover() {
+  document.getElementById('popover').classList.remove('show');
+  popTarget = null;
+}
+
+function refreshPills() {
+  const row = document.getElementById('pop-pills');
+  row.innerHTML = '';
+  [['CONFIRMED','已確認'],['PENDING','待確認']].forEach(([st, lbl]) => {
+    const p = document.createElement('button');
+    p.className = 'pill' + (popTarget.st === st ? ' ' + PILL_CLS[st] : '');
+    p.textContent = lbl;
+    p.onclick = () => setPopStatus(st);
+    row.appendChild(p);
+  });
+}
+
+function setPopStatus(newSt) {
+  if (!popTarget) return;
+  changeStatus(popTarget.id, newSt);
+  refreshPills();
+  showToast('狀態已更新為「' + SM[newSt] + '」');
+}
+
+function saveNote() {
+  if (!cur) return;
+  const note = document.getElementById('d-note').value;
+  cur.note = note;
+  persistChange(cur.id, { note });
+  showToast('備註已儲存');
+}
+
+function showPopCancel() {
+  document.getElementById('pop-can-default').style.display = 'none';
+  document.getElementById('pop-can-confirm').style.display  = 'block';
+}
+function hidePopCancel() {
+  document.getElementById('pop-can-default').style.display = 'block';
+  document.getElementById('pop-can-confirm').style.display  = 'none';
+}
+function doPopCancel() {
+  if (!popTarget) return;
+  changeStatus(popTarget.id, 'CANCELLED');
+  closePopover();
+  showToast('預約已取消，班次與床位已釋放');
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('#popover') && !e.target.classList.contains('edit-btn')) {
+    closePopover();
+  }
+});
+
+// ─── New Booking (3-step) ─────────────────────
+let nState = { br:null, dt:null, n:0, slot:null, svcs:[] };
+
+function resetNew() {
+  nState = { br:null, dt:null, n:0, slot:null, svcs:[] };
+  ['n-br','n-nm','n-ph','n-em'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const ndtEl = document.getElementById('n-dt');
+  ndtEl.value = ''; ndtEl.min = TODAY;
+  document.getElementById('n-nu').value = '';
+  document.getElementById('n-alert1').style.display = 'none';
+  // Reset vertical stepper
+  document.querySelectorAll('.vstep-num').forEach((el, i) => {
+    el.style.background = 'var(--sf2)'; el.style.color = 'var(--tx3)';
+    el.style.borderColor = 'var(--bd)'; el.textContent = String(i + 1);
+  });
+  document.querySelectorAll('.vstep-label').forEach(el => { el.style.color = 'var(--tx3)'; el.style.fontWeight = '500'; });
+  ['vs1-sub','vs2-sub'].forEach(id => { const el = document.getElementById(id); if (el) { el.style.display = 'none'; el.textContent = ''; } });
+  goStep(1);
+}
+
+function goStep(n) {
+  document.querySelectorAll('.step-pane').forEach(p => p.classList.remove('on'));
+  document.getElementById('sp' + n).classList.add('on');
+  // Vertical stepper styles
+  const nums = document.querySelectorAll('.vstep-num');
+  const labels = document.querySelectorAll('.vstep-label');
+  nums.forEach((el, i) => {
+    const active = i + 1 === n;
+    const done   = i + 1 < n;
+    el.style.background      = done  ? 'var(--dk)'  : active ? 'var(--dk)'  : 'var(--sf2)';
+    el.style.color           = (done || active) ? '#fff' : 'var(--tx3)';
+    el.style.borderColor     = (done || active) ? 'var(--dk)' : 'var(--bd)';
+    el.textContent           = done ? '✓' : String(i + 1);
+    labels[i].style.color    = active ? 'var(--tx)' : done ? 'var(--tx2)' : 'var(--tx3)';
+    labels[i].style.fontWeight = active ? '600' : '500';
+  });
+}
+
+function step1Next() {
+  const br = document.getElementById('n-br').value;
+  const dt = document.getElementById('n-dt').value;
+  const nu = document.getElementById('n-nu').value;
+  if (!br || !dt || !nu) {
+    document.getElementById('n-alert1').style.display = 'block';
+    return;
+  }
+  document.getElementById('n-alert1').style.display = 'none';
+  nState.br = br; nState.dt = dt; nState.n = parseInt(nu);
+  // Update sidebar sub-label for step 1
+  const sub1 = document.getElementById('vs1-sub');
+  if (sub1) { sub1.textContent = `${BR_NAMES[br]}・${dt}・${nu} 人`; sub1.style.display = 'block'; }
+  const s2sub = document.getElementById('n-s2sub');
+  if (s2sub) s2sub.textContent = `${BR_NAMES[br]}・${dt}・${nu} 人`;
+  buildSlots(); buildGuestCards();
+  goStep(2);
+}
+
+function buildSlots() {
+  nState.slot = null;
+  const grid = document.getElementById('n-slots');
+  grid.innerHTML = '';
+  MOCK_SLOTS.forEach(sl => {
+    const b = document.createElement('button');
+    b.className = 'slot-btn';
+    b.textContent = sl;
+    b.onclick = () => {
+      document.querySelectorAll('.slot-btn').forEach(x => x.classList.remove('sel'));
+      b.classList.add('sel');
+      nState.slot = sl;
+    };
+    grid.appendChild(b);
+  });
+}
+
+function buildGuestCards() {
+  nState.svcs = new Array(nState.n).fill(null);
+  const c = document.getElementById('n-guests');
+  c.innerHTML = '';
+  for (let i = 0; i < nState.n; i++) {
+    const div = document.createElement('div');
+    div.className = 'gcard';
+    div.innerHTML = `<div class="gcard-label">${i===0?'第 '+(i+1)+' 位（主要預約人）':'第 '+(i+1)+' 位'}</div>
+      <select onchange="nState.svcs[${i}]=parseInt(this.value)||null">
+        <option value="">— 請選擇服務項目 —</option>
+        ${SVCS.map(s=>`<option value="${s.id}">${s.name}（${s.dur}分鐘 / $${s.price.toLocaleString()}）</option>`).join('')}
+      </select>`;
+    c.appendChild(div);
+  }
+}
+
+function step2Next() {
+  document.getElementById('n-alert2').style.display = 'none';
+  if (!nState.slot || nState.svcs.some(v => !v)) {
+    document.getElementById('n-alert2').style.display = 'block';
+    return;
+  }
+  // Build step 3 summary
+  document.getElementById('s-br').textContent = BR_NAMES[nState.br];
+  document.getElementById('s-dt').textContent = nState.dt;
+  document.getElementById('s-sl').textContent = nState.slot;
+  // Sidebar sub-label for step 2
+  const sub2 = document.getElementById('vs2-sub');
+  if (sub2) { sub2.textContent = nState.slot; sub2.style.display = 'block'; }
+  const tbody = document.getElementById('s-gb');
+  tbody.innerHTML = '';
+  let tot = 0;
+  nState.svcs.forEach((sid,i) => {
+    const s = SVCS.find(x => x.id === sid);
+    tot += s.price;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td style="color:var(--tx2)">第${i+1}位</td><td>${s.name}</td><td>$${s.price.toLocaleString()}</td>`;
+    tbody.appendChild(tr);
+  });
+  document.getElementById('s-tot').textContent = '$' + tot.toLocaleString();
+  goStep(3);
+}
+
+function step3Submit() {
+  const nm = document.getElementById('n-nm').value.trim();
+  const ph = document.getElementById('n-ph').value.trim();
+  const em = document.getElementById('n-em').value.trim();
+  document.getElementById('n-alert3').style.display = 'none';
+  if (!nm || !/^09\d{8}$/.test(ph) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+    document.getElementById('n-alert3').style.display = 'block';
+    return;
+  }
+  refreshBKS();
+  const allBks = getFrontendBks();
+  const dateStr = nState.dt.replace(/-/g,'').slice(2);
+  const seq = String(BKS.length + allBks.length + 1).padStart(4, '0');
+  const newId = `BK-${dateStr}-${seq}`;
+  const now = new Date();
+  const crTime = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const guests = nState.svcs.map((sid, i) => {
+    const s = SVCS.find(x => x.id === sid);
+    return { sv: s.name, bed: `A-0${i+1}`, th: '待配對', p: s.price };
+  });
+
+  const newRec = {
+    id: newId, br: BR_NAMES[nState.br], dt: nState.dt,
+    sl: nState.slot, n: nState.n,
+    nm, ph, em, st: 'PENDING', cr: crTime, note: '', gs: guests
+  };
+
+  // Persist to shared store (will appear in frontend cancel lookup)
+  allBks.push(newRec);
+  saveFrontendBks(allBks);
+  refreshBKS();
+
+  document.getElementById('done-id').textContent = newId;
+  document.querySelectorAll('.step-pane').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.vstep-num').forEach(el => {
+    el.style.background = 'var(--dk)'; el.style.color = '#fff'; el.style.borderColor = 'var(--dk)'; el.textContent = '✓';
+  });
+  document.getElementById('sp-done').classList.add('on');
+}
+
+// ─── Dashboard ───────────────────────────────
+function rdash() {
+  refreshBKS();
+  bkColorMap = {}; bkColorIdx = 0; // reset color map each render
+
+  const today = new Date().toISOString().slice(0,10);
+  const dtEl = document.getElementById('db-dt');
+  if (!dtEl.value) dtEl.value = today;
+  const date = dtEl.value || today;
+  const brFilter = document.getElementById('db-br').value;
+
+  const branches = brFilter ? [brFilter] : Object.keys(BEDS_BY_BR);
+
+  // Pre-assign colors by bkid in date order
+  BKS.filter(b => b.dt === date && b.st !== 'CANCELLED' && (!brFilter || b.br === brFilter))
+    .forEach(b => getBkColor(b.id));
+
+  const body = document.getElementById('dash-body');
+  body.innerHTML = '';
+
+  branches.forEach(br => {
+    const { grid, beds } = buildGrid(br, date);
+    const totalCells = SLOTS_ALL.length * beds.length;
+    const occupied = Object.values(grid).flatMap(sl => Object.values(sl)).filter(v=>v).length;
+
+    const sec = document.createElement('div');
+    sec.className = 'br-section';
+    sec.innerHTML = `<div class="br-section-hd"><span>${br}</span><span style="font-size:11px;color:var(--tx3)">${occupied} / ${totalCells} 床已佔用</span></div>`;
+
+    const pn = document.createElement('div');
+    pn.className = 'pn';
+
+    const wrap = document.createElement('div');
+    wrap.className = 'dg-wrap';
+
+    const tbl = document.createElement('table');
+    tbl.className = 'dgrid';
+
+    // Header
+    const thead = document.createElement('thead');
+    thead.innerHTML = `<tr><th class="tcol">時段</th>${beds.map(b=>`<th>${b}</th>`).join('')}</tr>`;
+    tbl.appendChild(thead);
+
+    // Body
+    const tbody = document.createElement('tbody');
+    SLOTS_ALL.forEach(sl => {
+      const tr = document.createElement('tr');
+      let row = `<td class="tcel">${sl}</td>`;
+      beds.forEach(bed => {
+        const cell = grid[sl][bed];
+        if (cell) {
+          const col = getBkColor(cell.bkid);
+          const label = cell.total > 1 ? `${cell.nm}${cell.guestNum}` : cell.nm;
+          row += `<td><div class="cbook" style="background:${col.bg}" onclick="alert('預約者：${cell.nm}（第${cell.guestNum}位）\\n服務：${cell.sv}\\n技師：${cell.th}\\n預約碼：${cell.bkid}')">
+            <div class="cn2" style="color:${col.tx}">${label}</div>
+            <div class="cs2" style="color:${col.tx}">${cell.sv}</div>
+            <div class="cth" style="color:${col.tx}">${cell.th}</div>
+          </div></td>`;
+        } else {
+          row += `<td><div class="cempty"><div class="cdot"></div></div></td>`;
+        }
+      });
+      tr.innerHTML = row;
+      tbody.appendChild(tr);
+    });
+    tbl.appendChild(tbody);
+    wrap.appendChild(tbl);
+    pn.appendChild(wrap);
+    sec.appendChild(pn);
+    body.appendChild(sec);
+  });
+
+  // Update timestamp
+  const now = new Date();
+  document.getElementById('dash-ts').textContent = `更新於 ${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+}
+
+// ─── Init ────────────────────────────────────
+const TODAY = new Date().toISOString().slice(0,10);
+document.getElementById('n-dt').min = TODAY;
+document.getElementById('f-dt').value = '2026-04-15';
+document.getElementById('db-dt').value = '2026-04-15';
+rl();
+
+function copyId() {
+  const id = document.getElementById('done-id').textContent;
+  navigator.clipboard.writeText(id).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '已複製 ✓';
+    btn.style.color = 'var(--ok-tx)';
+    btn.style.borderColor = 'var(--ok-tx)';
+    setTimeout(() => { btn.textContent = '複製'; btn.style.color = ''; btn.style.borderColor = ''; }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = id; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '已複製 ✓';
+    setTimeout(() => { btn.textContent = '複製'; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

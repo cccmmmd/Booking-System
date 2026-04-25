@@ -1,0 +1,2036 @@
+openapi: 3.0.3
+info:
+  title: 連鎖按摩店線上多人預約系統 API
+  version: 2.6.0
+  description: '連鎖按摩店線上多人預約系統前後台 API 規格。
+
+
+    **認證說明：**
+
+    - 前台（`/public/*`）所有端點不需要認證
+
+    - 後台（`/admin/*`）所有端點需帶 Bearer Token（由既有後台系統簽發）
+
+
+    **角色權限：**
+
+    - 門市人員（Store Staff）：僅可存取 `/admin/dashboard`
+
+    - 營運人員（Operations Staff）：可存取所有後台端點
+
+    '
+servers:
+- url: /api/v1
+  description: API 基礎路徑
+tags:
+- name: 前台 - 分店與服務
+  description: 分店列表、服務項目等查詢
+- name: 前台 - 時段查詢
+  description: 可預約時段查詢
+- name: 前台 - 預約
+  description: 建立預約
+- name: 前台 - 取消預約
+  description: 驗證預約身份、執行取消
+- name: 後台 - 預約管理
+  description: 預約列表、詳情、狀態編輯、備註（僅營運人員）
+- name: 後台 - 手動建立預約
+  description: 後台三步驟手動建立預約（僅營運人員）
+- name: 後台 - 看板
+  description: 預約營運看板（門市人員與營運人員皆可）
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 既有後台系統簽發的認證 Token
+  schemas:
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: VALIDATION_ERROR
+            message:
+              type: string
+              example: 欄位格式驗證失敗
+    Pagination:
+      type: object
+      properties:
+        page:
+          type: integer
+          example: 1
+        per_page:
+          type: integer
+          example: 10
+          description: 固定每頁 10 筆
+        total_pages:
+          type: integer
+          example: 3
+        total_count:
+          type: integer
+          example: 24
+    Branch:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 台北信義店
+        phone:
+          type: string
+          example: 02-1234-5678
+    Slot:
+      type: object
+      properties:
+        slot_start:
+          type: string
+          format: time
+          example: '13:00'
+        slot_end:
+          type: string
+          format: time
+          example: '14:30'
+    Service:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: 全身指壓按摩
+        duration_min:
+          type: integer
+          example: 60
+        price:
+          type: string
+          example: '1200.00'
+    GuestInput:
+      type: object
+      required:
+      - guest_order
+      - service_id
+      properties:
+        guest_order:
+          type: integer
+          minimum: 1
+          maximum: 4
+          example: 1
+          description: 成員順序，1 為主要預約人
+        service_id:
+          type: integer
+          example: 1
+    GuestSummary:
+      type: object
+      properties:
+        guest_order:
+          type: integer
+          example: 1
+        is_primary:
+          type: boolean
+          example: true
+          description: true 表示主要預約人（guest_order = 1）
+        service_name:
+          type: string
+          example: 全身指壓按摩
+        duration_min:
+          type: integer
+          example: 60
+        price:
+          type: string
+          example: '1200.00'
+    SlotUnavailableError:
+      type: object
+      description: |
+        時段資源衝突錯誤，用於 POST /public/bookings 與 POST /admin/bookings 的 409 回應。
+        前端應依 `all_slots_unavailable` 決定導頁行為：
+        - `false`：僅所選時段不可用 → 清除 Step 2 選擇，停留 Step 2 讓客人重選時段。
+        - `true`：當日該分店所有時段均無法滿足人數 → 清除 Step 1 與 Step 2 所有選擇，跳回 Step 1。
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+              - SLOT_UNAVAILABLE
+              - THERAPIST_UNAVAILABLE
+              example: SLOT_UNAVAILABLE
+            message:
+              type: string
+              example: 所選時段床位已不足，請重新選擇時段
+            all_slots_unavailable:
+              type: boolean
+              description: |
+                true 表示當日該分店已無任何時段能滿足指定人數（床位與技師雙重條件皆不足），
+                前端應跳回 Step 1；false 表示僅所選時段不可用，停留 Step 2 即可。
+              example: false
+    BookingCreateRequest:
+      type: object
+      required:
+      - branch_id
+      - booking_date
+      - slot_start
+      - slot_end
+      - booker_name
+      - booker_phone
+      - booker_email
+      - guests
+      properties:
+        branch_id:
+          type: integer
+          example: 1
+        booking_date:
+          type: string
+          format: date
+          example: '2026-05-01'
+          description: 不得早於今日
+        slot_start:
+          type: string
+          example: '13:00'
+        slot_end:
+          type: string
+          example: '14:30'
+        booker_name:
+          type: string
+          example: 陳小明
+        booker_phone:
+          type: string
+          pattern: ^09\d{8}$
+          example: 0912345678
+        booker_email:
+          type: string
+          format: email
+          example: chen@example.com
+        guests:
+          type: array
+          minItems: 1
+          maxItems: 4
+          items:
+            $ref: '#/components/schemas/GuestInput'
+    BookingCreateResponse:
+      type: object
+      properties:
+        booking_code:
+          type: string
+          example: BK-260501-0042
+        status:
+          type: string
+          enum:
+          - PENDING
+          example: PENDING
+        branch_name:
+          type: string
+          example: 台北信義店
+        booking_date:
+          type: string
+          format: date
+          example: '2026-05-01'
+        slot_start:
+          type: string
+          example: '13:00'
+        slot_end:
+          type: string
+          example: '14:30'
+        total_guests:
+          type: integer
+          example: 2
+        guests:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuestSummary'
+        total_price:
+          type: string
+          example: '1850.00'
+    BookingVerifyRequest:
+      type: object
+      required:
+      - booking_code
+      - booker_phone
+      - booker_email
+      properties:
+        booking_code:
+          type: string
+          pattern: '^BK-\d{6}-\d{4}$'
+          example: BK-260501-0042
+          description: |
+            完整預約編號，格式為 BK-YYMMDD-XXXX。
+            前台取消頁面將預約編號拆為「中段日期碼」與「後段 4 位亂數」兩個輸入框，
+            前端應在送出前自行組合為完整字串（如 BK-260501-0042）再傳入此欄位。
+        booker_phone:
+          type: string
+          example: 0912345678
+        booker_email:
+          type: string
+          format: email
+          example: chen@example.com
+    BookingVerifyResponse:
+      type: object
+      properties:
+        booking_code:
+          type: string
+          example: BK-260501-0042
+        status:
+          type: string
+          enum:
+          - PENDING
+          - CONFIRMED
+          example: CONFIRMED
+        booker_name:
+          type: string
+          example: 陳小明
+        branch_name:
+          type: string
+          example: 台北信義店
+        booking_date:
+          type: string
+          format: date
+          example: '2026-05-01'
+        slot_start:
+          type: string
+          example: '13:00'
+        slot_end:
+          type: string
+          example: '14:30'
+        total_guests:
+          type: integer
+          example: 2
+        guests:
+          type: array
+          items:
+            $ref: '#/components/schemas/GuestSummary'
+        total_price:
+          type: string
+          example: '1850.00'
+        cancel_deadline:
+          type: string
+          format: date-time
+          example: '2026-04-30T13:00:00+08:00'
+          description: 可取消的最晚時間（預約時段開始前 24 小時）
+    BookingStatus:
+      type: string
+      enum:
+      - PENDING
+      - CONFIRMED
+      - CANCELLED
+      description: '- PENDING：待確認（初始狀態）
+
+        - CONFIRMED：已確認（店家收款確認後更新）
+
+        - CANCELLED：已取消（終態，不可再變更）
+
+        '
+    BookingListItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        booking_code:
+          type: string
+          example: BK-260415-0005
+        branch_name:
+          type: string
+          example: 台北信義店
+        booking_date:
+          type: string
+          format: date
+          example: '2026-04-15'
+        slot_start:
+          type: string
+          example: '14:30'
+        slot_end:
+          type: string
+          example: '16:00'
+        total_guests:
+          type: integer
+          example: 2
+        booker_name:
+          type: string
+          example: 陳小明
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-10T11:32:00+08:00'
+    BookingDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 5
+        booking_code:
+          type: string
+          example: BK-260415-0005
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        branch_name:
+          type: string
+          example: 台北信義店
+        booking_date:
+          type: string
+          format: date
+          example: '2026-04-15'
+        slot_start:
+          type: string
+          example: '14:30'
+        slot_end:
+          type: string
+          example: '16:00'
+        total_guests:
+          type: integer
+          example: 2
+        booker_name:
+          type: string
+          example: 陳小明
+        booker_phone:
+          type: string
+          example: 0912345678
+        booker_email:
+          type: string
+          example: chen@example.com
+        admin_note:
+          type: string
+          nullable: true
+          example: 客人要求輕力道
+        created_at:
+          type: string
+          format: date-time
+          example: '2026-04-10T11:32:00+08:00'
+        guests:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminGuestDetail'
+        total_price:
+          type: string
+          example: '2000.00'
+    AdminGuestDetail:
+      type: object
+      properties:
+        guest_order:
+          type: integer
+          example: 1
+        is_primary:
+          type: boolean
+          example: true
+        service_name:
+          type: string
+          example: 全身指壓按摩
+        duration_min:
+          type: integer
+          example: 60
+        price:
+          type: string
+          example: '1200.00'
+        bed_number:
+          type: string
+          example: A-01
+        therapist_name:
+          type: string
+          example: 王技師
+        status:
+          type: string
+          enum:
+          - CONFIRMED
+          - CANCELLED
+          example: CONFIRMED
+    DashboardBedCell:
+      type: object
+      properties:
+        bed_number:
+          type: string
+          example: A-01
+        booking_code:
+          type: string
+          nullable: true
+          example: BK-260415-0001
+          description: null 表示空床位
+        booker_name:
+          type: string
+          nullable: true
+          example: 林小華
+        guest_order:
+          type: integer
+          nullable: true
+          example: 1
+          description: 成員順序，配合 total_guests 顯示「林小華1」或僅「林小華」
+        total_guests:
+          type: integer
+          nullable: true
+          example: 2
+        service_name:
+          type: string
+          nullable: true
+          example: 全身指壓
+        therapist_name:
+          type: string
+          nullable: true
+          example: 王技師
+    DashboardSlot:
+      type: object
+      properties:
+        slot_start:
+          type: string
+          example: '10:00'
+        slot_end:
+          type: string
+          example: '11:30'
+        beds:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardBedCell'
+    DashboardBranch:
+      type: object
+      properties:
+        branch_id:
+          type: integer
+          example: 1
+        branch_name:
+          type: string
+          example: 台北信義店
+        occupied:
+          type: integer
+          example: 7
+          description: 當日已佔用床位總格數
+        total_capacity:
+          type: integer
+          example: 30
+          description: 當日總床位格數（床位數 × 時段數）
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/DashboardSlot'
+  responses:
+    Unauthorized:
+      description: 未認證
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: UNAUTHORIZED
+              message: 請先登入
+    Forbidden:
+      description: 權限不足
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: FORBIDDEN
+              message: 您的角色無此操作權限
+    BookingNotFound:
+      description: 預約不存在
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: BOOKING_NOT_FOUND
+              message: 查無此預約，請確認預約編號
+    TransactionFailed:
+      description: 資料庫交易失敗，已 Rollback
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            success: false
+            error:
+              code: TRANSACTION_FAILED
+              message: 系統暫時無法處理，請稍後再試
+paths:
+  /public/branches:
+    get:
+      tags:
+      - 前台 - 分店與服務
+      summary: 查詢分店列表
+      description: 回傳所有 is_active = true 的分店，供 Step 1 分店下拉選單使用。
+      operationId: getPublicBranches
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Branch'
+              example:
+                success: true
+                data:
+                - id: 1
+                  name: 台北信義店
+                  phone: 02-1234-5678
+                - id: 2
+                  name: 台北中山店
+                  phone: 02-2345-6789
+                - id: 3
+                  name: 新北板橋店
+                  phone: 02-3456-7890
+  /public/services:
+    get:
+      tags:
+      - 前台 - 分店與服務
+      summary: 查詢服務項目列表
+      description: 回傳所有 is_active = true 的服務項目，供 Step 2 成員服務選單使用。
+      operationId: getPublicServices
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Service'
+              example:
+                success: true
+                data:
+                - id: 1
+                  name: 全身指壓按摩
+                  duration_min: 60
+                  price: '1200.00'
+                - id: 2
+                  name: 腳底反射療法
+                  duration_min: 40
+                  price: '800.00'
+                - id: 3
+                  name: 肩頸舒緩護理
+                  duration_min: 30
+                  price: '650.00'
+                - id: 4
+                  name: 精油芳療全身
+                  duration_min: 90
+                  price: '1800.00'
+  /public/slots:
+    get:
+      tags:
+      - 前台 - 時段查詢
+      summary: 查詢可預約時段
+      description: 'Step 1 送出後，依分店、日期、人數計算可預約時段。
+
+
+        **篩選邏輯（雙重條件，兩者皆須滿足）：**
+
+        1. 該分店該日各時段空閒床位數 ≥ guests
+
+        2. 該分店該日各時段中，`therapist_schedules.status = AVAILABLE` 且時間範圍與時段完全吻合的技師班次數 ≥
+        guests
+
+
+        兩個條件任一不滿足的時段不回傳。回傳空陣列表示當日無可用時段。
+
+
+        **前端空陣列處理（對應 SRS 3.1.2）：**
+
+        `slots` 為空陣列時，前端應顯示提示訊息：「很抱歉！該分店該日期無符合人數的可預約時段，請重新選擇分店、日期或人數！」，
+        關閉提示後停留在 Step 1 且三個選項恢復預設狀態（分店清空、日期今日、人數 1）。
+
+        '
+      operationId: getPublicSlots
+      parameters:
+      - name: branch_id
+        in: query
+        required: true
+        schema:
+          type: integer
+        example: 1
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+        example: '2026-05-01'
+      - name: guests
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 4
+        example: 2
+      responses:
+        '200':
+          description: 成功（slots 為空陣列表示無可用時段）
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      slots:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Slot'
+              examples:
+                有可用時段:
+                  value:
+                    success: true
+                    data:
+                      slots:
+                      - slot_start: '10:00'
+                        slot_end: '11:30'
+                      - slot_start: '13:00'
+                        slot_end: '14:30'
+                無可用時段:
+                  value:
+                    success: true
+                    data:
+                      slots: []
+        '400':
+          description: 參數錯誤
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: VALIDATION_ERROR
+                  message: 缺少必要參數 branch_id
+  /public/bookings:
+    post:
+      tags:
+      - 前台 - 預約
+      summary: 建立預約
+      description: 'Step 3 確認送出後執行。
+
+
+        **系統處理流程（資料庫交易）：**
+
+        1. 二次確認時段床位仍足夠（防搶訂）
+
+        2. 二次確認 AVAILABLE 技師班次數仍足夠
+
+        3. 依序為每位成員分配床位與技師班次
+
+        4. 寫入 bookings（status: PENDING）
+
+        5. 寫入 booking_guests
+
+        6. 更新 therapist_schedules.status → BOOKED
+
+        7. 非同步發送預約確認 Email
+
+
+        任一步驟失敗執行完整 Rollback。
+
+        '
+      operationId: createPublicBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+      responses:
+        '201':
+          description: 預約建立成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/BookingCreateResponse'
+              example:
+                success: true
+                data:
+                  booking_code: BK-260501-0042
+                  status: PENDING
+                  branch_name: 台北信義店
+                  booking_date: '2026-05-01'
+                  slot_start: '13:00'
+                  slot_end: '14:30'
+                  total_guests: 2
+                  guests:
+                  - guest_order: 1
+                    is_primary: true
+                    service_name: 全身指壓按摩
+                    duration_min: 60
+                    price: '1200.00'
+                  - guest_order: 2
+                    is_primary: false
+                    service_name: 肩頸舒緩護理
+                    duration_min: 30
+                    price: '650.00'
+                  total_price: '1850.00'
+        '400':
+          description: 欄位驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: VALIDATION_ERROR
+                  message: 手機號碼格式不正確
+        '409':
+          description: |
+            資源衝突（時段床位被搶訂或技師班次不足）。
+            回應中的 `all_slots_unavailable` 欄位指示前端導頁行為：
+            - `false` → 停留 Step 2，清除時段選擇讓客人重選。
+            - `true` → 跳回 Step 1，清除所有選擇並顯示「無可用時段」提示。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotUnavailableError'
+              examples:
+                床位被搶訂_仍有其他時段:
+                  summary: 所選時段床位不足，但當日仍有其他可用時段（停留 Step 2）
+                  value:
+                    success: false
+                    error:
+                      code: SLOT_UNAVAILABLE
+                      message: 所選時段床位已不足，請重新選擇時段
+                      all_slots_unavailable: false
+                技師班次不足_仍有其他時段:
+                  summary: 所選時段技師不足，但當日仍有其他可用時段（停留 Step 2）
+                  value:
+                    success: false
+                    error:
+                      code: THERAPIST_UNAVAILABLE
+                      message: 所選時段技師班次不足，請重新選擇時段
+                      all_slots_unavailable: false
+                所有時段均不可用:
+                  summary: 當日所有時段皆無法滿足人數（跳回 Step 1）
+                  value:
+                    success: false
+                    error:
+                      code: SLOT_UNAVAILABLE
+                      message: 很抱歉！該分店該日期無符合人數的可預約時段，請重新選擇分店、日期或人數！
+                      all_slots_unavailable: true
+        '500':
+          $ref: '#/components/responses/TransactionFailed'
+  /public/bookings/verify:
+    post:
+      tags:
+      - 前台 - 取消預約
+      summary: 取消前驗證預約身份
+      description: '客人輸入預約編號、手機、Email 後送出，驗證身份並回傳預約摘要。
+
+
+        **驗證通過條件：**
+
+        - 預約編號存在
+
+        - 手機號碼與預約紀錄吻合
+
+        - Email 與預約紀錄吻合
+
+        - 預約狀態為 PENDING 或 CONFIRMED
+
+        - 當前時間在預約時段開始前 24 小時以上
+
+        '
+      operationId: verifyPublicBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingVerifyRequest'
+      responses:
+        '200':
+          description: 驗證通過，回傳預約摘要
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/BookingVerifyResponse'
+              example:
+                success: true
+                data:
+                  booking_code: BK-260501-0042
+                  status: CONFIRMED
+                  booker_name: 陳小明
+                  branch_name: 台北信義店
+                  booking_date: '2026-05-01'
+                  slot_start: '13:00'
+                  slot_end: '14:30'
+                  total_guests: 2
+                  guests:
+                  - guest_order: 1
+                    is_primary: true
+                    service_name: 全身指壓按摩
+                    duration_min: 60
+                    price: '1200.00'
+                  - guest_order: 2
+                    is_primary: false
+                    service_name: 肩頸舒緩護理
+                    duration_min: 30
+                    price: '650.00'
+                  total_price: '1850.00'
+                  cancel_deadline: '2026-04-30T13:00:00+08:00'
+        '400':
+          description: |
+            查無預約或身份驗證失敗。
+            依照 SRS 3.1.6，「預約編號不存在」與「手機/Email 不符」對前台客人屬同一錯誤情境，
+            統一以此狀態碼回傳，前端顯示相同的提示：「沒查到該筆預約資訊，請確認輸入的資訊是否正確！」
+            並重置所有欄位停留在本頁。
+            涵蓋情境：(1) 預約編號不存在；(2) 預約編號存在但手機或 Email 不符。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: BOOKING_LOOKUP_FAILED
+                  message: 沒查到該筆預約資訊，請確認輸入的資訊是否正確！
+        '409':
+          description: 預約已取消
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: BOOKING_ALREADY_CANCELLED
+                  message: 此預約已取消
+        '422':
+          description: 超過 24 小時取消期限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: CANCEL_DEADLINE_EXCEEDED
+                  message: 此預約已超過取消期限，請來電分店
+  /public/bookings/cancel:
+    post:
+      tags:
+      - 前台 - 取消預約
+      summary: 執行取消預約（前台）
+      description: '確認取消資訊頁點擊「確認取消」後呼叫。
+
+
+        後端需再次執行完整驗證（三要素 + 期限檢查），防止跳過 verify 直接呼叫。
+
+
+        成功後**觸發 Email 模組**，發送取消確認通知至主要預約人信箱，前台顯示「預約已取消」兩秒後導回首頁。
+
+
+        > **Email 行為對照：** 前台取消 → 發送取消確認 Email；後台人工取消（`POST /admin/bookings/{booking_code}/cancel`）→ 不觸發 Email 模組。
+
+        '
+      operationId: cancelPublicBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingVerifyRequest'
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      booking_code:
+                        type: string
+                        example: BK-260501-0042
+                      status:
+                        type: string
+                        enum:
+                        - CANCELLED
+                        example: CANCELLED
+              example:
+                success: true
+                data:
+                  booking_code: BK-260501-0042
+                  status: CANCELLED
+        '400':
+          description: |
+            查無預約或身份驗證失敗。
+            依照 SRS 3.1.6，「預約編號不存在」與「手機/Email 不符」對前台客人屬同一錯誤情境，
+            統一以此狀態碼回傳，前端顯示相同的提示：「沒查到該筆預約資訊，請確認輸入的資訊是否正確！」
+            並重置所有欄位停留在本頁。
+            涵蓋情境：(1) 預約編號不存在；(2) 預約編號存在但手機或 Email 不符。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: BOOKING_LOOKUP_FAILED
+                  message: 沒查到該筆預約資訊，請確認輸入的資訊是否正確！
+        '409':
+          description: 預約已取消
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: BOOKING_ALREADY_CANCELLED
+                  message: 此預約已取消
+        '422':
+          description: 超過取消期限
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: CANCEL_DEADLINE_EXCEEDED
+                  message: 此預約已超過取消期限，請來電分店
+        '500':
+          $ref: '#/components/responses/TransactionFailed'
+  /admin/bookings:
+    get:
+      tags:
+      - 後台 - 預約管理
+      summary: 查詢預約列表
+      description: '預約管理列表頁使用，固定每頁 10 筆。
+
+
+        **存取角色：** 僅限營運人員（Operations Staff）；門市人員呼叫此端點將回傳 403。
+
+
+        **前端預設行為：** 頁面載入時前端主動帶入當日日期（`date=今天`）與登入者所屬分店（`branch_id`），API 本身不設後端預設篩選值。
+
+
+        所有篩選條件皆為選填，不帶參數則回傳全部資料（仍套用分頁）。
+
+        '
+      operationId: getAdminBookings
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: branch_id
+        in: query
+        required: false
+        schema:
+          type: integer
+        example: 1
+      - name: date
+        in: query
+        required: false
+        schema:
+          type: string
+          format: date
+        example: '2026-04-15'
+      - name: booking_code
+        in: query
+        required: false
+        schema:
+          type: string
+        example: BK-260415
+        description: 部分符合搜尋
+      - name: booker_name
+        in: query
+        required: false
+        schema:
+          type: string
+        example: 陳小明
+        description: 部分符合搜尋
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 1
+        example: 1
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      summary:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                            example: 24
+                          confirmed:
+                            type: integer
+                            example: 19
+                          pending:
+                            type: integer
+                            example: 3
+                      bookings:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/BookingListItem'
+                      pagination:
+                        $ref: '#/components/schemas/Pagination'
+              example:
+                success: true
+                data:
+                  summary:
+                    total: 24
+                    confirmed: 19
+                    pending: 3
+                  bookings:
+                  - id: 5
+                    booking_code: BK-260415-0005
+                    branch_name: 台北信義店
+                    booking_date: '2026-04-15'
+                    slot_start: '14:30'
+                    slot_end: '16:00'
+                    total_guests: 2
+                    booker_name: 陳小明
+                    status: CONFIRMED
+                    created_at: '2026-04-10T11:32:00+08:00'
+                  - id: 4
+                    booking_code: BK-260415-0004
+                    branch_name: 台北信義店
+                    booking_date: '2026-04-15'
+                    slot_start: '13:00'
+                    slot_end: '14:30'
+                    total_guests: 1
+                    booker_name: 吳建國
+                    status: PENDING
+                    created_at: '2026-04-14T08:47:00+08:00'
+                  pagination:
+                    page: 1
+                    per_page: 10
+                    total_pages: 3
+                    total_count: 24
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+    post:
+      tags:
+      - 後台 - 手動建立預約
+      summary: 手動建立預約（後台）
+      description: '後台三步驟手動建立（電話預約情境）。
+
+
+        **存取角色：** 僅限營運人員（Operations Staff）；門市人員呼叫此端點將回傳 403。
+
+
+        邏輯與前台 `POST /public/bookings` 完全相同，包含技師配對、床位分配、資料庫交易，以及發送預約確認 Email。
+
+        '
+      operationId: createAdminBooking
+      security:
+      - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingCreateRequest'
+      responses:
+        '201':
+          description: 預約建立成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/BookingCreateResponse'
+              example:
+                success: true
+                data:
+                  booking_code: BK-260415-0099
+                  status: PENDING
+                  branch_name: 台北信義店
+                  booking_date: '2026-04-15'
+                  slot_start: '10:00'
+                  slot_end: '11:30'
+                  total_guests: 2
+                  guests:
+                  - guest_order: 1
+                    is_primary: true
+                    service_name: 精油芳療全身
+                    duration_min: 90
+                    price: '1800.00'
+                  - guest_order: 2
+                    is_primary: false
+                    service_name: 腳底反射療法
+                    duration_min: 40
+                    price: '800.00'
+                  total_price: '2600.00'
+        '400':
+          description: 欄位驗證失敗
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: VALIDATION_ERROR
+                  message: 手機號碼格式不正確
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          description: |
+            資源衝突（時段床位被搶訂或技師班次不足）。
+            回應中的 `all_slots_unavailable` 欄位指示前端導頁行為：
+            - `false` → 停留 Step 2，清除時段選擇讓人員重選。
+            - `true` → 跳回 Step 1，清除所有選擇並顯示無可用時段提示。
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SlotUnavailableError'
+              examples:
+                床位被搶訂_仍有其他時段:
+                  summary: 所選時段床位不足，仍有其他可用時段（停留 Step 2）
+                  value:
+                    success: false
+                    error:
+                      code: SLOT_UNAVAILABLE
+                      message: 所選時段床位已不足，請重新選擇時段
+                      all_slots_unavailable: false
+                所有時段均不可用:
+                  summary: 當日所有時段皆無法滿足人數（跳回 Step 1）
+                  value:
+                    success: false
+                    error:
+                      code: SLOT_UNAVAILABLE
+                      message: 很抱歉！該分店該日期無符合人數的可預約時段，請重新選擇分店、日期或人數！
+                      all_slots_unavailable: true
+        '500':
+          $ref: '#/components/responses/TransactionFailed'
+  /admin/bookings/{booking_code}:
+    get:
+      tags:
+      - 後台 - 預約管理
+      summary: 查詢預約詳情
+      description: '點擊列表「查看」按鈕後進入詳情頁使用。
+
+
+        **存取角色：** 僅限營運人員（Operations Staff）；門市人員呼叫此端點將回傳 403。
+
+        '
+      operationId: getAdminBookingDetail
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: booking_code
+        in: path
+        required: true
+        schema:
+          type: string
+        example: BK-260415-0005
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/BookingDetail'
+              example:
+                success: true
+                data:
+                  id: 5
+                  booking_code: BK-260415-0005
+                  status: CONFIRMED
+                  branch_name: 台北信義店
+                  booking_date: '2026-04-15'
+                  slot_start: '14:30'
+                  slot_end: '16:00'
+                  total_guests: 2
+                  booker_name: 陳小明
+                  booker_phone: 0912345678
+                  booker_email: chen@example.com
+                  admin_note: 客人要求輕力道
+                  created_at: '2026-04-10T11:32:00+08:00'
+                  guests:
+                  - guest_order: 1
+                    is_primary: true
+                    service_name: 全身指壓按摩
+                    duration_min: 60
+                    price: '1200.00'
+                    bed_number: A-01
+                    therapist_name: 王技師
+                    status: CONFIRMED
+                  - guest_order: 2
+                    is_primary: false
+                    service_name: 腳底反射療法
+                    duration_min: 40
+                    price: '800.00'
+                    bed_number: A-02
+                    therapist_name: 林技師
+                    status: CONFIRMED
+                  total_price: '2000.00'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/BookingNotFound'
+  /admin/bookings/{booking_code}/status:
+    patch:
+      tags:
+      - 後台 - 預約管理
+      summary: 更新預約狀態
+      description: '列表頁 Popover 狀態 Pill 點擊即生效（1 click，無需二次確認）。
+
+
+        **存取角色：** 僅限營運人員（Operations Staff）；門市人員呼叫此端點將回傳 403。
+
+
+        **合法狀態值：** `PENDING`、`CONFIRMED`
+
+
+        `CANCELLED` 不透過此端點，需使用 `POST /admin/bookings/{booking_code}/cancel`。
+
+
+        **狀態流轉規則：**
+
+        - PENDING → CONFIRMED ✓
+
+        - CONFIRMED → PENDING ✓
+
+        - CANCELLED → 任何狀態 ✗（回傳 422）
+
+        '
+      operationId: updateAdminBookingStatus
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: booking_code
+        in: path
+        required: true
+        schema:
+          type: string
+        example: BK-260415-0005
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - status
+              properties:
+                status:
+                  type: string
+                  enum:
+                  - PENDING
+                  - CONFIRMED
+                  example: CONFIRMED
+      responses:
+        '200':
+          description: 狀態更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      booking_code:
+                        type: string
+                        example: BK-260415-0005
+                      status:
+                        $ref: '#/components/schemas/BookingStatus'
+              example:
+                success: true
+                data:
+                  booking_code: BK-260415-0005
+                  status: CONFIRMED
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/BookingNotFound'
+        '422':
+          description: 非法狀態流轉
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: INVALID_STATUS_TRANSITION
+                  message: 已取消的預約無法變更狀態
+  /admin/bookings/{booking_code}/cancel:
+    post:
+      tags:
+      - 後台 - 預約管理
+      summary: 後台取消預約
+      description: '列表頁 Popover 確認取消、或詳情頁確認取消後呼叫。
+
+
+        後台取消**無時間限制**，不需驗證 24 小時期限。
+
+
+        操作人員身份由 Bearer Token 識別，不需傳入 Request Body。
+
+
+        後台取消**不觸發 Email 模組**，不發送任何通知至預約人。
+
+
+        > **Email 行為對照：** 後台人工取消 → 不發送 Email；前台客人取消（`POST /public/bookings/cancel`）→ 發送取消確認 Email。
+
+
+        成功後釋放對應技師班次（status → AVAILABLE）與床位記錄。
+
+        '
+      operationId: cancelAdminBooking
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: booking_code
+        in: path
+        required: true
+        schema:
+          type: string
+        example: BK-260415-0005
+      responses:
+        '200':
+          description: 取消成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      booking_code:
+                        type: string
+                        example: BK-260415-0005
+                      status:
+                        type: string
+                        enum:
+                        - CANCELLED
+                        example: CANCELLED
+              example:
+                success: true
+                data:
+                  booking_code: BK-260415-0005
+                  status: CANCELLED
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/BookingNotFound'
+        '409':
+          description: 預約已為取消狀態
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error:
+                  code: BOOKING_ALREADY_CANCELLED
+                  message: 此預約已為取消狀態
+        '500':
+          $ref: '#/components/responses/TransactionFailed'
+  /admin/bookings/{booking_code}/note:
+    patch:
+      tags:
+      - 後台 - 預約管理
+      summary: 更新後台備註
+      description: '詳情頁備註欄儲存按鈕使用。
+
+
+        **存取角色：** 僅限營運人員（Operations Staff）；門市人員呼叫此端點將回傳 403。
+
+
+        備註僅後台可見，不對客人揭露。傳入空字串視為清空備註。
+
+        '
+      operationId: updateAdminBookingNote
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: booking_code
+        in: path
+        required: true
+        schema:
+          type: string
+        example: BK-260415-0005
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - admin_note
+              properties:
+                admin_note:
+                  type: string
+                  example: 客人要求輕力道，需注意
+                  description: 傳入空字串表示清空備註
+      responses:
+        '200':
+          description: 備註儲存成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      booking_code:
+                        type: string
+                        example: BK-260415-0005
+                      admin_note:
+                        type: string
+                        example: 客人要求輕力道，需注意
+              example:
+                success: true
+                data:
+                  booking_code: BK-260415-0005
+                  admin_note: 客人要求輕力道，需注意
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/BookingNotFound'
+  /admin/slots:
+    get:
+      tags:
+      - 後台 - 手動建立預約
+      summary: 查詢可用時段（後台）
+      description: '後台手動建立預約 Step 1 送出後查詢，邏輯與篩選條件與前台 `GET /public/slots` 完全一致。
+
+
+        **存取角色：** 僅限營運人員（Operations Staff）；門市人員呼叫此端點將回傳 403。
+
+
+        獨立端點設計，預留未來擴充（如回傳剩餘床位數等管理資訊）而不影響前台端點。
+
+
+        **篩選邏輯（同前台）：**
+
+        1. 空閒床位數 ≥ guests
+
+        2. 該分店該時段 AVAILABLE 技師班次數 ≥ guests，且時間範圍完全吻合
+
+        '
+      operationId: getAdminSlots
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: branch_id
+        in: query
+        required: true
+        schema:
+          type: integer
+        example: 1
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+        example: '2026-05-01'
+      - name: guests
+        in: query
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 4
+        example: 2
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      slots:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Slot'
+              example:
+                success: true
+                data:
+                  slots:
+                  - slot_start: '10:00'
+                    slot_end: '11:30'
+                  - slot_start: '13:00'
+                    slot_end: '14:30'
+                  - slot_start: '14:30'
+                    slot_end: '16:00'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /admin/dashboard:
+    get:
+      tags:
+      - 後台 - 看板
+      summary: 查詢預約營運看板
+      description: '預約營運看板頁使用，門市人員與營運人員皆可存取。
+
+
+        **存取角色：** 門市人員（Store Staff）與營運人員（Operations Staff）均可呼叫此端點；兩者皆不回傳 403。
+
+
+        依日期與分店回傳各時段每個床位的佔用資料。
+
+
+        - `booking_code = null` 表示空床位
+
+        - `guest_order` 與 `total_guests` 配合使用：`total_guests > 1` 時前端顯示「林小華1」，`total_guests
+        = 1` 時只顯示「林小華」
+
+        - `occupied` 為當日已佔用的床位格總數，`total_capacity` 為床位數 × 時段數
+
+        '
+      operationId: getAdminDashboard
+      security:
+      - BearerAuth: []
+      parameters:
+      - name: date
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date
+        example: '2026-04-15'
+        description: 預設由前端帶入今日日期
+      - name: branch_id
+        in: query
+        required: false
+        schema:
+          type: integer
+        example: 1
+        description: 不帶此參數則回傳所有分店
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: object
+                    properties:
+                      date:
+                        type: string
+                        format: date
+                        example: '2026-04-15'
+                      branches:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/DashboardBranch'
+              example:
+                success: true
+                data:
+                  date: '2026-04-15'
+                  branches:
+                  - branch_id: 1
+                    branch_name: 台北信義店
+                    occupied: 7
+                    total_capacity: 30
+                    slots:
+                    - slot_start: '10:00'
+                      slot_end: '11:30'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: BK-260415-0001
+                        booker_name: 林小華
+                        guest_order: 1
+                        total_guests: 2
+                        service_name: 全身指壓
+                        therapist_name: 王技師
+                      - bed_number: A-02
+                        booking_code: BK-260415-0001
+                        booker_name: 林小華
+                        guest_order: 2
+                        total_guests: 2
+                        service_name: 肩頸舒緩
+                        therapist_name: 李技師
+                      - bed_number: A-03
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-01
+                        booking_code: BK-260415-0002
+                        booker_name: 張大偉
+                        guest_order: 1
+                        total_guests: 1
+                        service_name: 腳底反射
+                        therapist_name: 陳技師
+                      - bed_number: B-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                    - slot_start: '11:30'
+                      slot_end: '13:00'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: A-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: A-03
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-01
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                    - slot_start: '13:00'
+                      slot_end: '14:30'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: BK-260415-0003
+                        booker_name: 黃美玲
+                        guest_order: 1
+                        total_guests: 3
+                        service_name: 精油芳療
+                        therapist_name: 王技師
+                      - bed_number: A-02
+                        booking_code: BK-260415-0003
+                        booker_name: 黃美玲
+                        guest_order: 2
+                        total_guests: 3
+                        service_name: 全身指壓
+                        therapist_name: 李技師
+                      - bed_number: A-03
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-01
+                        booking_code: BK-260415-0003
+                        booker_name: 黃美玲
+                        guest_order: 3
+                        total_guests: 3
+                        service_name: 腳底反射
+                        therapist_name: 陳技師
+                      - bed_number: B-02
+                        booking_code: BK-260415-0004
+                        booker_name: 吳建國
+                        guest_order: 1
+                        total_guests: 1
+                        service_name: 全身指壓
+                        therapist_name: 林技師
+                    - slot_start: '14:30'
+                      slot_end: '16:00'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: BK-260415-0005
+                        booker_name: 陳小明
+                        guest_order: 1
+                        total_guests: 2
+                        service_name: 全身指壓
+                        therapist_name: 王技師
+                      - bed_number: A-02
+                        booking_code: BK-260415-0005
+                        booker_name: 陳小明
+                        guest_order: 2
+                        total_guests: 2
+                        service_name: 腳底反射
+                        therapist_name: 林技師
+                      - bed_number: A-03
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-01
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                    - slot_start: '16:00'
+                      slot_end: '17:30'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: BK-260415-0006
+                        booker_name: 蔡依珊
+                        guest_order: 1
+                        total_guests: 2
+                        service_name: 肩頸舒緩
+                        therapist_name: 王技師
+                      - bed_number: A-02
+                        booking_code: BK-260415-0006
+                        booker_name: 蔡依珊
+                        guest_order: 2
+                        total_guests: 2
+                        service_name: 肩頸舒緩
+                        therapist_name: 李技師
+                      - bed_number: A-03
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-01
+                        booking_code: BK-260415-0007
+                        booker_name: 鄭雅文
+                        guest_order: 1
+                        total_guests: 1
+                        service_name: 精油芳療
+                        therapist_name: 陳技師
+                      - bed_number: B-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                    - slot_start: '18:00'
+                      slot_end: '19:30'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: A-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: A-03
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-01
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                  - branch_id: 2
+                    branch_name: 台北中山店
+                    occupied: 3
+                    total_capacity: 24
+                    slots:
+                    - slot_start: '10:00'
+                      slot_end: '11:30'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: BK-260415-0008
+                        booker_name: 劉天明
+                        guest_order: 1
+                        total_guests: 2
+                        service_name: 全身指壓
+                        therapist_name: 趙技師
+                      - bed_number: A-02
+                        booking_code: BK-260415-0008
+                        booker_name: 劉天明
+                        guest_order: 2
+                        total_guests: 2
+                        service_name: 腳底反射
+                        therapist_name: 吳技師
+                      - bed_number: B-01
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                    - slot_start: '14:30'
+                      slot_end: '16:00'
+                      beds:
+                      - bed_number: A-01
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: A-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+                      - bed_number: B-01
+                        booking_code: BK-260415-0009
+                        booker_name: 許志偉
+                        guest_order: 1
+                        total_guests: 1
+                        service_name: 精油芳療
+                        therapist_name: 趙技師
+                      - bed_number: B-02
+                        booking_code: null
+                        booker_name: null
+                        guest_order: null
+                        total_guests: null
+                        service_name: null
+                        therapist_name: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'

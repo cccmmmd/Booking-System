@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>悠然 Yōzen — 線上預約</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600;700&family=Noto+Sans+TC:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sage: #4a7c59;
+    --sage-light: #6a9e78;
+    --sage-pale: #e8f0ea;
+    --sage-dark: #2d5a3d;
+    --cream: #faf8f4;
+    --stone: #8c7e6e;
+    --ink: #1e1e1e;
+  }
+  * { box-sizing: border-box; }
+  body { font-family: 'Noto Sans TC', sans-serif; background: var(--cream); color: var(--ink); }
+  .font-serif { font-family: 'Noto Serif TC', serif; }
+
+  /* Step indicator */
+  .step-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; transition: all .3s; flex-shrink: 0; }
+  .step-line { flex: 1; height: 2px; transition: background .3s; }
+
+  /* Time slot */
+  .slot-btn { border: 1.5px solid #d1d5db; border-radius: 10px; padding: 12px 16px; cursor: pointer; transition: all .2s; background: white; text-align: center; font-size: 14px; font-weight: 500; }
+  .slot-btn:hover { border-color: var(--sage); color: var(--sage); }
+  .slot-btn.selected { background: var(--sage); border-color: var(--sage); color: white; }
+  .slot-btn.disabled { opacity: .4; cursor: not-allowed; border-color: #e5e7eb; }
+
+  /* Input */
+  .inp { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 10px 14px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif; transition: border-color .2s; outline: none; background: white; }
+  .inp:focus { border-color: var(--sage); }
+  .inp.err { border-color: #ef4444; }
+
+  /* Buttons */
+  .btn-primary { background: var(--sage); color: white; border: none; border-radius: 10px; padding: 13px 28px; font-size: 15px; font-weight: 600; font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .btn-primary:hover { background: var(--sage-dark); }
+  .btn-primary:disabled { opacity: .4; cursor: not-allowed; }
+  .btn-ghost { background: white; color: #6b7280; border: 1.5px solid #d1d5db; border-radius: 10px; padding: 12px 24px; font-size: 15px; font-weight: 500; font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all .2s; }
+  .btn-ghost:hover { border-color: #9ca3af; color: #374151; }
+  .btn-danger { background: #fee2e2; color: #dc2626; border: 1.5px solid #fca5a5; border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 600; font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all .2s; }
+  .btn-danger:hover { background: #fecaca; }
+
+  /* Modal */
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 24px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .modal-bg.show { opacity: 1; pointer-events: all; }
+  .modal-box { background: white; border-radius: 16px; padding: 28px; width: 100%; max-width: 380px; transform: translateY(12px); transition: transform .25s; box-shadow: 0 20px 60px rgba(0,0,0,.15); }
+  .modal-bg.show .modal-box { transform: translateY(0); }
+
+  /* Toast */
+  .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--sage-dark); color: white; padding: 10px 22px; border-radius: 24px; font-size: 13px; font-weight: 500; opacity: 0; transition: all .3s; pointer-events: none; white-space: nowrap; z-index: 500; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  /* Tag chip */
+  .chip { background: var(--sage-pale); color: var(--sage-dark); border-radius: 20px; padding: 5px 14px; font-size: 13px; font-weight: 500; display: inline-block; }
+
+  /* Service select */
+  .svc-select { width: 100%; border: 1.5px solid #d1d5db; border-radius: 8px; padding: 10px 14px; font-size: 14px; font-family: 'Noto Sans TC', sans-serif; background: white; cursor: pointer; outline: none; transition: border-color .2s; }
+  .svc-select:focus { border-color: var(--sage); }
+  .svc-select.err { border-color: #ef4444; }
+
+  /* Admin link button */
+  .admin-float { position: fixed; top: 16px; right: 16px; z-index: 100; background: var(--sage-dark); color: white; border: none; border-radius: 8px; padding: 8px 16px; font-size: 12px; font-weight: 600; font-family: 'Noto Sans TC', sans-serif; cursor: pointer; transition: all .2s; display: flex; align-items: center; gap: 6px; }
+  .admin-float:hover { background: var(--sage); }
+
+  /* Page transition */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* Booking code box */
+  .bk-code-box { border: 2px dashed #9ca3af; border-radius: 12px; padding: 16px 24px; text-align: center; background: #f9fafb; }
+
+  /* Scrollable container */
+  .scroll-x { overflow-x: auto; }
+
+  /* Loading spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { width: 18px; height: 18px; border: 2.5px solid rgba(255,255,255,.3); border-top-color: white; border-radius: 50%; animation: spin .7s linear infinite; }
+
+  /* Fade in */
+  @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  .fade-up { animation: fadeUp .4s ease forwards; }
+
+  /* Success check */
+  @keyframes drawCheck { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+  .check-path { stroke-dasharray: 60; stroke-dashoffset: 60; animation: drawCheck .5s .3s ease forwards; }
+
+  /* Decorative */
+  .hero-pattern { background-image: radial-gradient(circle at 20% 50%, rgba(74,124,89,.08) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(74,124,89,.06) 0%, transparent 50%); }
+</style>
+</head>
+<body class="min-h-screen hero-pattern">
+
+<!-- Admin shortcut -->
+<button class="admin-float" onclick="goAdmin()">
+  <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+  後台管理
+</button>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PAGE 0: HOME                               -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pg-home" class="page active">
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="px-6 pt-10 pb-6 text-center">
+      <div class="font-serif text-3xl font-bold tracking-wide" style="color:var(--sage-dark)">悠然 Yōzen</div>
+      <div class="text-sm mt-1" style="color:var(--stone)">按摩療癒 · 多人預約</div>
+    </header>
+
+    <div class="flex-1 flex flex-col items-center px-5 pb-10">
+      <div class="w-full max-w-md">
+
+        <!-- Cancel link -->
+        <div class="text-right mb-6">
+          <button onclick="showPage('pg-cancel')" class="text-sm font-medium underline underline-offset-2" style="color:var(--stone)">取消預約</button>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 fade-up">
+          <h1 class="font-serif text-xl font-bold mb-1" style="color:var(--ink)">開始預約！</h1>
+          <p class="text-sm mb-6" style="color:var(--stone)">請選擇分店、日期，並輸入總人數（含您自己）。</p>
+
+          <!-- Branch -->
+          <div class="mb-4">
+            <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">預約分店</label>
+            <select id="h-branch" class="inp" onchange="clearErr('h-branch-err')">
+              <option value="">— 請選擇分店 —</option>
+              <option value="台北信義店">台北信義店</option>
+              <option value="台北中山店">台北中山店</option>
+              <option value="新北板橋店">新北板橋店</option>
+            </select>
+            <p id="h-branch-err" class="text-xs mt-1 hidden" style="color:#ef4444">請選擇分店</p>
+          </div>
+
+          <!-- Date -->
+          <div class="mb-4">
+            <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">預約日期</label>
+            <input type="date" id="h-date" class="inp" onchange="clearErr('h-date-err')">
+            <p id="h-date-err" class="text-xs mt-1 hidden" style="color:#ef4444">請選擇日期</p>
+          </div>
+
+          <!-- Count -->
+          <div class="mb-6">
+            <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">預約人數 <span class="font-normal text-xs" style="color:var(--stone)">（含自己最多 4 人）</span></label>
+            <select id="h-count" class="inp">
+              <option value="1">1 人</option>
+              <option value="2">2 人</option>
+              <option value="3">3 人</option>
+              <option value="4">4 人</option>
+            </select>
+          </div>
+
+          <button class="btn-primary w-full" onclick="querySlots()">
+            查詢可預約時段
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PAGE 1: STEP 2 — SLOT + SERVICE            -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pg-step2" class="page">
+  <div class="min-h-screen flex flex-col">
+    <header class="px-6 pt-8 pb-4">
+      <div class="font-serif text-xl font-bold mb-1" style="color:var(--sage-dark)">悠然 Yōzen</div>
+      <!-- step indicator -->
+      <div class="flex items-center gap-2 mt-4 mb-2">
+        <div class="step-dot" style="background:var(--sage);color:white;">1</div>
+        <div class="step-line" style="background:var(--sage);"></div>
+        <div class="step-dot" style="background:var(--sage);color:white;">2</div>
+        <div class="step-line" style="background:#e5e7eb;"></div>
+        <div class="step-dot" style="background:#e5e7eb;color:#9ca3af;">3</div>
+      </div>
+      <div class="text-xs font-semibold mt-1" style="color:var(--sage)">選擇時段與服務</div>
+    </header>
+
+    <div class="flex-1 px-5 pb-10">
+      <div class="w-full max-w-md mx-auto">
+
+        <!-- Breadcrumb -->
+        <p id="s2-meta" class="text-sm mb-4" style="color:var(--stone)"></p>
+
+        <!-- Slots -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+          <h2 class="font-semibold text-sm mb-3" style="color:var(--ink)">可預約時段</h2>
+          <div id="s2-slots" class="grid grid-cols-2 gap-2 mb-2"></div>
+          <p id="s2-slot-err" class="text-xs mt-1 hidden" style="color:#ef4444">請選擇一個預約時段</p>
+        </div>
+
+        <!-- Services -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-5">
+          <div class="flex items-center justify-between mb-3">
+            <h2 class="font-semibold text-sm" style="color:var(--ink)">各預約者服務項目</h2>
+            <p id="s2-svc-err" class="text-xs hidden" style="color:#ef4444">請確認每個人都有選擇服務</p>
+          </div>
+          <div id="s2-guests"></div>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex gap-3">
+          <button class="btn-ghost flex-1" onclick="showPage('pg-home')">返回</button>
+          <button class="btn-primary flex-1" onclick="submitStep2()">送出選擇</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PAGE 2: STEP 3 — CONFIRM + CONTACT        -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pg-step3" class="page">
+  <div class="min-h-screen flex flex-col">
+    <header class="px-6 pt-8 pb-4">
+      <div class="font-serif text-xl font-bold mb-1" style="color:var(--sage-dark)">悠然 Yōzen</div>
+      <div class="flex items-center gap-2 mt-4 mb-2">
+        <div class="step-dot" style="background:var(--sage);color:white;">1</div>
+        <div class="step-line" style="background:var(--sage);"></div>
+        <div class="step-dot" style="background:var(--sage);color:white;">2</div>
+        <div class="step-line" style="background:var(--sage);"></div>
+        <div class="step-dot" style="background:var(--sage);color:white;">3</div>
+      </div>
+      <div class="text-xs font-semibold mt-1" style="color:var(--sage)">確認摘要、填寫資料</div>
+    </header>
+
+    <div class="flex-1 px-5 pb-10">
+      <div class="w-full max-w-md mx-auto">
+
+        <p class="text-sm mb-4" style="color:var(--stone)">請確認以下預約內容，並填寫主要預約人聯絡資訊。</p>
+
+        <!-- Summary chips -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+          <h2 class="font-semibold text-sm mb-3" style="color:var(--ink)">預約摘要</h2>
+          <div id="s3-chips" class="flex flex-wrap gap-2 mb-4"></div>
+
+          <!-- Service table -->
+          <div class="scroll-x">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-gray-100">
+                  <th class="text-left pb-2 font-semibold text-xs pr-3" style="color:var(--stone)">#</th>
+                  <th class="text-left pb-2 font-semibold text-xs pr-3" style="color:var(--stone)">服務項目</th>
+                  <th class="text-right pb-2 font-semibold text-xs pr-3" style="color:var(--stone)">時長</th>
+                  <th class="text-right pb-2 font-semibold text-xs" style="color:var(--stone)">費用</th>
+                </tr>
+              </thead>
+              <tbody id="s3-tbody"></tbody>
+            </table>
+          </div>
+          <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+            <span class="font-semibold text-sm">合計</span>
+            <span id="s3-total" class="font-bold text-base" style="color:var(--sage-dark)"></span>
+          </div>
+        </div>
+
+        <!-- Contact form -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-5">
+          <h2 class="font-semibold text-sm mb-4" style="color:var(--ink)">主要預約人資料</h2>
+
+          <div class="mb-4">
+            <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">姓名</label>
+            <input type="text" id="c-name" class="inp" placeholder="請輸入姓名" oninput="clearErr('c-name-err')">
+            <p id="c-name-err" class="text-xs mt-1 hidden" style="color:#ef4444">請輸入姓名</p>
+          </div>
+
+          <div class="mb-4">
+            <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">手機號碼</label>
+            <input type="tel" id="c-phone" class="inp" placeholder="09XXXXXXXX" oninput="clearErr('c-phone-err')">
+            <p id="c-phone-err" class="text-xs mt-1 hidden" style="color:#ef4444">手機號碼未輸入或格式不對</p>
+          </div>
+
+          <div class="mb-2">
+            <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">電子信箱</label>
+            <input type="email" id="c-email" class="inp" placeholder="example@email.com" oninput="clearErr('c-email-err')">
+            <p id="c-email-err" class="text-xs mt-1 hidden" style="color:#ef4444">電子信箱未輸入或格式不對</p>
+          </div>
+        </div>
+
+        <div class="flex gap-3">
+          <button class="btn-ghost flex-1" onclick="showPage('pg-step2')">返回</button>
+          <button id="submit-btn" class="btn-primary flex-1" onclick="submitBooking()">確認送出預約</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PAGE 3: DONE                               -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pg-done" class="page">
+  <div class="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+    <div class="w-full max-w-sm text-center fade-up">
+
+      <!-- Success icon -->
+      <div class="flex justify-center mb-5">
+        <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background:var(--sage-pale)">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <circle cx="18" cy="18" r="17" stroke="#4a7c59" stroke-width="2"/>
+            <path class="check-path" d="M10 18.5l6 6 10-13" stroke="#4a7c59" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+
+      <h1 class="font-serif text-2xl font-bold mb-2" style="color:var(--sage-dark)">預約完成！</h1>
+      <p class="text-sm mb-5" style="color:var(--stone)">確認通知已發送至您的 Email</p>
+
+      <!-- Booking code -->
+      <div class="bk-code-box mb-6">
+        <p class="font-serif font-bold text-xl tracking-widest" id="done-code" style="color:var(--ink)"></p>
+      </div>
+
+      <!-- Service summary table -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 text-left">
+        <div class="scroll-x mb-3">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-100">
+                <th class="text-left pb-2 text-xs font-semibold pr-3" style="color:var(--stone)">#</th>
+                <th class="text-left pb-2 text-xs font-semibold pr-3" style="color:var(--stone)">服務項目</th>
+                <th class="text-right pb-2 text-xs font-semibold pr-3" style="color:var(--stone)">時長</th>
+                <th class="text-right pb-2 text-xs font-semibold" style="color:var(--stone)">費用</th>
+              </tr>
+            </thead>
+            <tbody id="done-tbody"></tbody>
+          </table>
+        </div>
+        <div class="flex justify-between items-center pt-2 border-t border-gray-100">
+          <span class="font-semibold text-sm">合計</span>
+          <span id="done-total" class="font-bold" style="color:var(--sage-dark)"></span>
+        </div>
+      </div>
+
+      <!-- Info block -->
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 mb-4 text-left text-sm space-y-1">
+        <div><span style="color:var(--stone)">分店：</span><span id="done-br" class="font-medium"></span></div>
+        <div><span style="color:var(--stone)">日期：</span><span id="done-dt" class="font-medium"></span></div>
+        <div><span style="color:var(--stone)">時段：</span><span id="done-sl" class="font-medium"></span></div>
+        <div><span style="color:var(--stone)">人數：</span><span id="done-nu" class="font-medium"></span></div>
+        <div><span style="color:var(--stone)">主預約人：</span><span id="done-nm" class="font-medium"></span> <span id="done-ph" class="font-medium"></span></div>
+        <div><span style="color:var(--stone)">通知將寄送至：</span><span id="done-em" class="font-medium"></span></div>
+      </div>
+
+      <!-- Notes -->
+      <div class="rounded-xl p-4 mb-6 text-left text-xs space-y-2" style="background:var(--sage-pale);color:var(--sage-dark)">
+        <div>・如需取消，請於預約時段 24 小時前上本系統取消（首頁「取消預約」）或致電分店取消</div>
+        <div>・如欲修改，請直接取消前一次預約並重新預約</div>
+      </div>
+
+      <button class="btn-primary w-full" onclick="goHome()">結束返回首頁</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PAGE 4: CANCEL — INPUT                    -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pg-cancel" class="page">
+  <div class="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+    <div class="w-full max-w-sm">
+
+      <div class="text-center mb-6">
+        <div class="font-serif text-xl font-bold mb-1" style="color:var(--sage-dark)">悠然 Yōzen</div>
+        <p class="text-sm" style="color:var(--stone)">取消預約</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 fade-up">
+        <h1 class="font-semibold text-base mb-5" style="color:var(--ink)">請輸入預約資訊</h1>
+
+        <!-- Booking code split input -->
+        <div class="mb-4">
+          <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">預約編號 <span style="color:#ef4444">*</span></label>
+          <div class="flex items-center gap-2 border-2 rounded-10px px-3 py-2.5" id="bk-code-wrap" style="border:2px solid #d1d5db;border-radius:10px;padding:10px 14px;">
+            <span class="font-bold text-sm" style="color:var(--stone)">BK -</span>
+            <input type="text" id="cancel-code1" maxlength="6" class="flex-1 outline-none text-sm font-medium text-center" style="background:transparent;min-width:0;" placeholder="YYMMDD" oninput="onCode1(this)">
+            <span class="font-bold text-sm" style="color:var(--stone)">-</span>
+            <input type="text" id="cancel-code2" maxlength="4" class="flex-1 outline-none text-sm font-medium text-center" style="background:transparent;min-width:0;" placeholder="XXXX" oninput="clearErr('cancel-code-err')">
+          </div>
+          <p id="cancel-code-err" class="text-xs mt-1 hidden" style="color:#ef4444">請輸入預約編號</p>
+        </div>
+
+        <div class="mb-4">
+          <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">預約人手機號碼 <span style="color:#ef4444">*</span></label>
+          <input type="tel" id="cancel-phone" class="inp" placeholder="09XXXXXXXX" oninput="clearErr('cancel-phone-err')">
+          <p id="cancel-phone-err" class="text-xs mt-1 hidden" style="color:#ef4444">請輸入手機號碼</p>
+        </div>
+
+        <div class="mb-6">
+          <label class="block text-sm font-semibold mb-1.5" style="color:var(--ink)">預約人電子信箱 <span style="color:#ef4444">*</span></label>
+          <input type="email" id="cancel-email" class="inp" placeholder="example@email.com" oninput="clearErr('cancel-email-err')">
+          <p id="cancel-email-err" class="text-xs mt-1 hidden" style="color:#ef4444">請輸入電子信箱</p>
+        </div>
+
+        <div class="flex gap-3">
+          <button class="btn-ghost flex-1" onclick="goHome()">取消</button>
+          <button class="btn-primary flex-1" onclick="verifyCancel()">送出查詢</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  PAGE 5: CANCEL — CONFIRM                  -->
+<!-- ═══════════════════════════════════════════ -->
+<div id="pg-cancel-confirm" class="page">
+  <div class="min-h-screen flex flex-col items-center justify-center px-5 py-12">
+    <div class="w-full max-w-sm fade-up">
+
+      <div class="text-center mb-6">
+        <div class="font-serif text-xl font-bold mb-1" style="color:var(--sage-dark)">悠然 Yōzen</div>
+        <p class="text-sm" style="color:var(--stone)">確認取消資訊</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4">
+        <h2 class="font-semibold text-sm mb-3" style="color:var(--ink)">預約摘要</h2>
+        <div class="text-sm space-y-1 mb-4">
+          <div><span style="color:var(--stone)">主預約人：</span><span id="cc-nm" class="font-medium"></span></div>
+          <div><span style="color:var(--stone)">分店：</span><span id="cc-br" class="font-medium"></span></div>
+          <div><span style="color:var(--stone)">日期：</span><span id="cc-dt" class="font-medium"></span></div>
+          <div><span style="color:var(--stone)">時段：</span><span id="cc-sl" class="font-medium"></span></div>
+          <div><span style="color:var(--stone)">人數：</span><span id="cc-nu" class="font-medium"></span> 人</div>
+        </div>
+
+        <div class="scroll-x">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-gray-100">
+                <th class="text-left pb-2 text-xs font-semibold pr-3" style="color:var(--stone)">#</th>
+                <th class="text-left pb-2 text-xs font-semibold pr-3" style="color:var(--stone)">服務項目</th>
+                <th class="text-right pb-2 text-xs font-semibold pr-3" style="color:var(--stone)">時長</th>
+                <th class="text-right pb-2 text-xs font-semibold" style="color:var(--stone)">費用</th>
+              </tr>
+            </thead>
+            <tbody id="cc-tbody"></tbody>
+          </table>
+        </div>
+        <div class="flex justify-between items-center mt-3 pt-3 border-t border-gray-100">
+          <span class="font-semibold text-sm">合計</span>
+          <span id="cc-total" class="font-bold" style="color:var(--sage-dark)"></span>
+        </div>
+      </div>
+
+      <div class="flex gap-3">
+        <button class="btn-ghost flex-1" onclick="showPage('pg-cancel')">返回</button>
+        <button id="do-cancel-btn" class="btn-danger flex-1" onclick="doCancel()">確認取消</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!--  MODALS                                     -->
+<!-- ═══════════════════════════════════════════ -->
+
+<!-- No slots modal -->
+<div id="modal-noslot" class="modal-bg">
+  <div class="modal-box">
+    <button class="float-right text-gray-400 hover:text-gray-600 text-xl leading-none" onclick="hideModal('modal-noslot')">✕</button>
+    <div class="pr-6">
+      <div class="text-2xl mb-3">😔</div>
+      <p class="font-semibold text-base mb-1" style="color:var(--ink)">很抱歉！</p>
+      <p class="text-sm" style="color:var(--stone)">該分店該日期無符合人數的可預約時段，請重新選擇分店、日期或人數！</p>
+    </div>
+    <button class="btn-primary w-full mt-5" onclick="hideModal('modal-noslot')">重新選擇</button>
+  </div>
+</div>
+
+<!-- Slot taken modal (single slot unavailable) -->
+<div id="modal-slot-taken" class="modal-bg">
+  <div class="modal-box">
+    <button class="float-right text-gray-400 hover:text-gray-600 text-xl leading-none" onclick="hideModal('modal-slot-taken')">✕</button>
+    <div class="pr-6">
+      <div class="text-2xl mb-3">😔</div>
+      <p class="font-semibold text-base mb-1" style="color:var(--ink)">很抱歉！</p>
+      <p class="text-sm" style="color:var(--stone)">該時段已先被預約，請選擇其他時段或日期！</p>
+    </div>
+    <button class="btn-primary w-full mt-5" onclick="hideModal('modal-slot-taken')">了解</button>
+  </div>
+</div>
+
+<!-- System error modal -->
+<div id="modal-syserr" class="modal-bg">
+  <div class="modal-box">
+    <button class="float-right text-gray-400 hover:text-gray-600 text-xl leading-none" onclick="hideModal('modal-syserr')">✕</button>
+    <div class="pr-6">
+      <div class="text-2xl mb-3">⚠️</div>
+      <p class="font-semibold text-base mb-1" style="color:var(--ink)">很抱歉！</p>
+      <p class="text-sm" style="color:var(--stone)">系統忙碌中，請稍後再試！</p>
+    </div>
+    <button class="btn-primary w-full mt-5" onclick="hideModal('modal-syserr')">關閉</button>
+  </div>
+</div>
+
+<!-- Cancel: not found modal -->
+<div id="modal-notfound" class="modal-bg">
+  <div class="modal-box">
+    <button class="float-right text-gray-400 hover:text-gray-600 text-xl leading-none" onclick="hideModal('modal-notfound')">✕</button>
+    <div class="pr-6">
+      <div class="text-2xl mb-3">🔍</div>
+      <p class="font-semibold text-base mb-1" style="color:var(--ink)">沒查到該筆預約資訊，</p>
+      <p class="text-sm" style="color:var(--stone)">請確認輸入的資訊是否正確！</p>
+    </div>
+    <button class="btn-primary w-full mt-5" onclick="hideModal('modal-notfound')">重新輸入</button>
+  </div>
+</div>
+
+<!-- Cancel: already cancelled modal -->
+<div id="modal-already-cancelled" class="modal-bg">
+  <div class="modal-box">
+    <button class="float-right text-gray-400 hover:text-gray-600 text-xl leading-none" onclick="hideModal('modal-already-cancelled')">✕</button>
+    <div class="pr-6">
+      <div class="text-2xl mb-3">ℹ️</div>
+      <p class="font-semibold text-base" style="color:var(--ink)">該筆預約已取消！</p>
+    </div>
+    <button class="btn-primary w-full mt-5" onclick="hideModal('modal-already-cancelled')">確定</button>
+  </div>
+</div>
+
+<!-- Cancel: deadline exceeded modal -->
+<div id="modal-deadline" class="modal-bg">
+  <div class="modal-box">
+    <button class="float-right text-gray-400 hover:text-gray-600 text-xl leading-none" onclick="hideModal('modal-deadline')">✕</button>
+    <div class="pr-6">
+      <div class="text-2xl mb-3">⏰</div>
+      <p class="font-semibold text-base mb-1" style="color:var(--ink)">很抱歉！</p>
+      <p class="text-sm mb-3" style="color:var(--stone)">此預約已超過「預約時段 24 小時前」的取消期限</p>
+      <p class="text-sm font-semibold mb-2" style="color:var(--stone)">請來電分店，由專人為您服務！</p>
+      <div class="text-sm space-y-1" style="color:var(--ink)">
+        <div class="flex justify-between"><span>師大店</span><span>02-1234-5678</span></div>
+        <div class="flex justify-between"><span>站前店</span><span>02-1234-5678</span></div>
+        <div class="flex justify-between"><span>信義店</span><span>02-1234-5678</span></div>
+        <div class="flex justify-between"><span>三民店</span><span>02-1234-5678</span></div>
+        <div class="flex justify-between"><span>南西店</span><span>02-1234-5678</span></div>
+      </div>
+    </div>
+    <button class="btn-primary w-full mt-5" onclick="hideModal('modal-deadline')">關閉</button>
+  </div>
+</div>
+
+<!-- Cancel success overlay -->
+<div id="modal-cancel-success" class="modal-bg">
+  <div class="modal-box text-center">
+    <div class="text-3xl mb-3">✅</div>
+    <p class="font-semibold text-lg" style="color:var(--ink)">預約已取消</p>
+    <p class="text-xs mt-2" style="color:var(--stone)">即將返回首頁…</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast" class="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  SHARED DATA STORE (localStorage key: YZ_BOOKINGS)
+// ═══════════════════════════════════════════════════════
+const STORE_KEY = 'YZ_BOOKINGS';
+
+const SVCS = [
+  { id:1, name:'全身指壓按摩', dur:60, price:1200 },
+  { id:2, name:'腳底反射療法', dur:40, price:800  },
+  { id:3, name:'肩頸舒緩護理', dur:30, price:650  },
+  { id:4, name:'精油芳療全身', dur:90, price:1800 },
+];
+
+const ALL_SLOTS = ['10:00 – 11:30','11:30 – 13:00','13:00 – 14:30','14:30 – 16:00','16:00 – 17:30','18:00 – 19:30'];
+
+// Beds per branch (simulate capacity)
+const BEDS_BY_BR = {
+  '台北信義店': 10,
+  '台北中山店': 9,
+  '新北板橋店': 8,
+};
+
+function getStore() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY) || '[]'); } catch { return []; }
+}
+function saveStore(data) {
+  localStorage.setItem(STORE_KEY, JSON.stringify(data));
+}
+
+// ═══════════════════════════════════════════════════════
+//  PAGE CONTROL
+// ═══════════════════════════════════════════════════════
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo(0, 0);
+}
+function goHome() { showPage('pg-home'); }
+function goAdmin() {
+  // Pass store data via localStorage (admin reads from same key)
+  window.open('admin_wireframe.html', '_blank');
+}
+
+// ═══════════════════════════════════════════════════════
+//  MODALS & TOAST
+// ═══════════════════════════════════════════════════════
+function showModal(id) { document.getElementById(id).classList.add('show'); }
+function hideModal(id) { document.getElementById(id).classList.remove('show'); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════════
+//  VALIDATION HELPERS
+// ═══════════════════════════════════════════════════════
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  if (msg) el.textContent = msg;
+  el.classList.remove('hidden');
+}
+function clearErr(id) { document.getElementById(id).classList.add('hidden'); }
+
+function validPhone(v) { return /^09\d{8}$/.test(v.replace(/-/g,'')); }
+function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
+
+// ═══════════════════════════════════════════════════════
+//  BOOKING STATE
+// ═══════════════════════════════════════════════════════
+let state = { branch:'', date:'', count:1, slot:'', services:[], cancelTarget:null };
+
+// Init date default = today
+(function() {
+  const today = new Date();
+  const yy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  document.getElementById('h-date').value = `${yy}-${mm}-${dd}`;
+  document.getElementById('h-date').min = `${yy}-${mm}-${dd}`;
+})();
+
+// ═══════════════════════════════════════════════════════
+//  STEP 1 → STEP 2
+// ═══════════════════════════════════════════════════════
+function querySlots() {
+  const branch = document.getElementById('h-branch').value;
+  const date   = document.getElementById('h-date').value;
+  const count  = parseInt(document.getElementById('h-count').value);
+  let valid = true;
+
+  if (!branch) { showErr('h-branch-err'); valid = false; }
+  if (!date)   { showErr('h-date-err'); valid = false; }
+  if (!valid) return;
+
+  // Find taken slots (where remaining beds < count)
+  const bks = getStore();
+  const taken = {};
+  bks.filter(b => b.br === branch && b.dt === date && b.st !== 'CANCELLED').forEach(b => {
+    taken[b.sl] = (taken[b.sl] || 0) + b.n;
+  });
+  const totalBeds = BEDS_BY_BR[branch] || 8;
+  const available = ALL_SLOTS.filter(sl => (totalBeds - (taken[sl]||0)) >= count);
+
+  if (available.length === 0) { showModal('modal-noslot'); return; }
+
+  state.branch = branch; state.date = date; state.count = count;
+  state.slot = ''; state.services = Array(count).fill(null);
+
+  buildStep2(available, taken, totalBeds, count);
+  showPage('pg-step2');
+}
+
+function buildStep2(available, taken, totalBeds, count) {
+  // Meta line
+  document.getElementById('s2-meta').textContent =
+    `${state.branch} · ${formatDate(state.date)} · ${count} 人`;
+
+  // Slots
+  const slotsEl = document.getElementById('s2-slots');
+  slotsEl.innerHTML = '';
+  ALL_SLOTS.forEach(sl => {
+    const avail = available.includes(sl);
+    const btn = document.createElement('button');
+    btn.className = 'slot-btn' + (avail ? '' : ' disabled');
+    btn.textContent = sl;
+    btn.disabled = !avail;
+    if (avail) btn.onclick = () => selectSlot(sl, btn);
+    slotsEl.appendChild(btn);
+  });
+
+  // Guest service cards
+  const guestsEl = document.getElementById('s2-guests');
+  guestsEl.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const label = i === 0 ? `第 1 位（主要預約人）` : `第 ${i+1} 位`;
+    const div = document.createElement('div');
+    div.className = 'mb-3 p-3 rounded-xl border border-gray-100' + (i===0?' bg-gray-50':'');
+    div.innerHTML = `
+      <p class="text-xs font-semibold mb-2" style="color:var(--stone)">${label}</p>
+      <select class="svc-select" id="svc-${i}" onchange="onSvcChange(${i},this)">
+        <option value="">— 請選擇服務項目 —</option>
+        ${SVCS.map(s=>`<option value="${s.id}">${s.name}（${s.dur}分鐘 / $${s.price}）</option>`).join('')}
+      </select>
+    `;
+    guestsEl.appendChild(div);
+  }
+}
+
+function selectSlot(sl, btn) {
+  // Simulate real-time conflict: re-check at moment of click
+  const bks = getStore();
+  const taken = bks.filter(b=>b.br===state.branch&&b.dt===state.date&&b.sl===sl&&b.st!=='CANCELLED').reduce((a,b)=>a+b.n,0);
+  if (BEDS_BY_BR[state.branch] - taken < state.count) {
+    showModal('modal-slot-taken');
+    return;
+  }
+  state.slot = sl;
+  document.querySelectorAll('#s2-slots .slot-btn').forEach(b=>b.classList.remove('selected'));
+  btn.classList.add('selected');
+  clearErr('s2-slot-err');
+}
+
+function onSvcChange(i, sel) {
+  state.services[i] = sel.value ? parseInt(sel.value) : null;
+  clearErr('s2-svc-err');
+}
+
+function submitStep2() {
+  let valid = true;
+  if (!state.slot) { showErr('s2-slot-err'); valid = false; }
+  const allChosen = state.services.every(s => s !== null);
+  if (!allChosen) { showErr('s2-svc-err'); valid = false; }
+  // Re-read from selects
+  for (let i=0; i<state.count; i++) {
+    const v = document.getElementById(`svc-${i}`)?.value;
+    if (!v) { showErr('s2-svc-err'); valid = false; break; }
+    state.services[i] = parseInt(v);
+  }
+  if (!valid) return;
+
+  // Re-check slot availability one more time
+  const bks = getStore();
+  const taken = bks.filter(b=>b.br===state.branch&&b.dt===state.date&&b.sl===state.slot&&b.st!=='CANCELLED').reduce((a,b)=>a+b.n,0);
+  if (BEDS_BY_BR[state.branch] - taken < state.count) {
+    showModal('modal-slot-taken');
+    return;
+  }
+
+  buildStep3();
+  showPage('pg-step3');
+}
+
+// ═══════════════════════════════════════════════════════
+//  STEP 3
+// ═══════════════════════════════════════════════════════
+function buildStep3() {
+  // Chips
+  const chips = document.getElementById('s3-chips');
+  chips.innerHTML = `
+    <span class="chip">${state.branch}</span>
+    <span class="chip">${formatDate(state.date)}</span>
+    <span class="chip">${state.slot}</span>
+    <span class="chip">${state.count} 人</span>
+  `;
+
+  // Table
+  const tbody = document.getElementById('s3-tbody');
+  tbody.innerHTML = '';
+  let total = 0;
+  state.services.forEach((sid, i) => {
+    const svc = SVCS.find(s=>s.id===sid);
+    total += svc.price;
+    const label = i===0 ? `第 1人（主）` : `第 ${i+1} 人`;
+    tbody.innerHTML += `
+      <tr class="border-b border-gray-50">
+        <td class="py-2 pr-3 text-xs" style="color:var(--stone)">${label}</td>
+        <td class="py-2 pr-3">${svc.name}</td>
+        <td class="py-2 pr-3 text-right text-xs" style="color:var(--stone)">${svc.dur} 分</td>
+        <td class="py-2 text-right font-medium">$${svc.price}</td>
+      </tr>`;
+  });
+  document.getElementById('s3-total').textContent = `$${total}`;
+}
+
+async function submitBooking() {
+  const name  = document.getElementById('c-name').value.trim();
+  const phone = document.getElementById('c-phone').value.trim();
+  const email = document.getElementById('c-email').value.trim();
+  let valid = true;
+
+  if (!name)         { showErr('c-name-err'); valid = false; }
+  if (!validPhone(phone)) { showErr('c-phone-err'); valid = false; }
+  if (!validEmail(email)) { showErr('c-email-err'); valid = false; }
+  if (!valid) return;
+
+  // Show loading
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner"></div> 送出中…`;
+
+  // Simulate async API call (800ms)
+  await sleep(800);
+
+  // Final conflict check (simulate race condition handling)
+  const bks = getStore();
+  const taken = bks.filter(b=>b.br===state.branch&&b.dt===state.date&&b.sl===state.slot&&b.st!=='CANCELLED').reduce((a,b)=>a+b.n,0);
+  if (BEDS_BY_BR[state.branch] - taken < state.count) {
+    btn.disabled = false;
+    btn.innerHTML = '確認送出預約';
+    showModal('modal-slot-taken');
+    return;
+  }
+
+  // Simulate 5% transaction failure
+  if (Math.random() < 0.05) {
+    btn.disabled = false;
+    btn.innerHTML = '確認送出預約';
+    showModal('modal-syserr');
+    return;
+  }
+
+  // Build booking record
+  const now = new Date();
+  const dateStr = state.date.replace(/-/g,'').slice(2); // YYMMDD
+  const seq = String(bks.length + 1).padStart(4, '0');
+  const bkId = `BK-${dateStr}-${seq}`;
+  const crTime = `${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+
+  const guests = state.services.map((sid, i) => {
+    const svc = SVCS.find(s=>s.id===sid);
+    return { sv: svc.name, bed: `A-0${i+1}`, th: '待配對', p: svc.price };
+  });
+
+  const record = {
+    id: bkId, br: state.branch, dt: state.date,
+    sl: state.slot, n: state.count,
+    nm: name, ph: phone, em: email,
+    st: 'PENDING', cr: crTime, note: '',
+    gs: guests,
+    _svcIds: state.services,
+  };
+
+  bks.push(record);
+  saveStore(bks);
+
+  btn.disabled = false;
+  btn.innerHTML = '確認送出預約';
+
+  buildDone(record);
+  showPage('pg-done');
+}
+
+function buildDone(rec) {
+  document.getElementById('done-code').textContent = rec.id;
+  document.getElementById('done-br').textContent = rec.br;
+  document.getElementById('done-dt').textContent = formatDate(rec.dt);
+  document.getElementById('done-sl').textContent = rec.sl;
+  document.getElementById('done-nu').textContent = `${rec.n} 人`;
+  document.getElementById('done-nm').textContent = rec.nm;
+  document.getElementById('done-ph').textContent = rec.ph;
+  document.getElementById('done-em').textContent = rec.em;
+
+  const tbody = document.getElementById('done-tbody');
+  tbody.innerHTML = '';
+  let total = 0;
+  rec.gs.forEach((g, i) => {
+    total += g.p;
+    const label = i===0 ? `第 1人（主）` : `第 ${i+1} 人`;
+    tbody.innerHTML += `
+      <tr class="border-b border-gray-50">
+        <td class="py-2 pr-3 text-xs" style="color:var(--stone)">${label}</td>
+        <td class="py-2 pr-3">${g.sv}</td>
+        <td class="py-2 pr-3 text-right text-xs" style="color:var(--stone)">${SVCS.find(s=>s.name===g.sv)?.dur ?? '—'} 分</td>
+        <td class="py-2 text-right font-medium">$${g.p}</td>
+      </tr>`;
+  });
+  document.getElementById('done-total').textContent = `$${total}`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  CANCEL FLOW
+// ═══════════════════════════════════════════════════════
+function onCode1(input) {
+  if (input.value.length === 6) document.getElementById('cancel-code2').focus();
+  clearErr('cancel-code-err');
+}
+
+function verifyCancel() {
+  const c1    = document.getElementById('cancel-code1').value.trim();
+  const c2    = document.getElementById('cancel-code2').value.trim();
+  const phone = document.getElementById('cancel-phone').value.trim();
+  const email = document.getElementById('cancel-email').value.trim();
+  let valid = true;
+
+  if (!c1 || !c2) { showErr('cancel-code-err'); valid = false; }
+  if (!phone)      { showErr('cancel-phone-err'); valid = false; }
+  if (!email)      { showErr('cancel-email-err'); valid = false; }
+  if (!valid) return;
+
+  const fullCode = `BK-${c1}-${c2}`;
+  const bks = getStore();
+  const bk = bks.find(b =>
+    b.id.toUpperCase() === fullCode.toUpperCase() &&
+    b.ph.replace(/-/g,'') === phone.replace(/-/g,'') &&
+    b.em.toLowerCase() === email.toLowerCase()
+  );
+
+  // 400 BOOKING_LOOKUP_FAILED — unified, no distinction (security)
+  if (!bk) { showModal('modal-notfound'); return; }
+
+  // 409 BOOKING_ALREADY_CANCELLED
+  if (bk.st === 'CANCELLED') { showModal('modal-already-cancelled'); return; }
+
+  // 422 CANCEL_DEADLINE_EXCEEDED — 24hr before slot start
+  const slotStart = bk.sl.split(' – ')[0]; // e.g. "10:00"
+  const slotDt = new Date(`${bk.dt}T${slotStart}:00`);
+  const now = new Date();
+  if (now >= new Date(slotDt.getTime() - 24*60*60*1000)) {
+    showModal('modal-deadline'); return;
+  }
+
+  state.cancelTarget = bk;
+  buildCancelConfirm(bk);
+  showPage('pg-cancel-confirm');
+}
+
+function buildCancelConfirm(bk) {
+  document.getElementById('cc-nm').textContent = bk.nm;
+  document.getElementById('cc-br').textContent = bk.br;
+  document.getElementById('cc-dt').textContent = formatDate(bk.dt);
+  document.getElementById('cc-sl').textContent = bk.sl;
+  document.getElementById('cc-nu').textContent = bk.n;
+
+  const tbody = document.getElementById('cc-tbody');
+  tbody.innerHTML = '';
+  let total = 0;
+  bk.gs.forEach((g, i) => {
+    total += g.p;
+    const label = i===0 ? `第 1人（主）` : `第 ${i+1} 人`;
+    const svc = SVCS.find(s=>s.name===g.sv);
+    tbody.innerHTML += `
+      <tr class="border-b border-gray-50">
+        <td class="py-2 pr-3 text-xs" style="color:var(--stone)">${label}</td>
+        <td class="py-2 pr-3">${g.sv}</td>
+        <td class="py-2 pr-3 text-right text-xs" style="color:var(--stone)">${svc?.dur ?? '—'} 分</td>
+        <td class="py-2 text-right font-medium">$${g.p}</td>
+      </tr>`;
+  });
+  document.getElementById('cc-total').textContent = `$${total}`;
+}
+
+async function doCancel() {
+  if (!state.cancelTarget) return;
+  const btn = document.getElementById('do-cancel-btn');
+  btn.disabled = true;
+  btn.innerHTML = `<div class="spinner" style="border-color:rgba(220,38,38,.3);border-top-color:#dc2626;"></div> 取消中…`;
+
+  await sleep(700);
+
+  // Simulate 5% transaction failure
+  if (Math.random() < 0.05) {
+    btn.disabled = false;
+    btn.innerHTML = '確認取消';
+    showModal('modal-syserr');
+    return;
+  }
+
+  const bks = getStore();
+  const idx = bks.findIndex(b => b.id === state.cancelTarget.id);
+  if (idx > -1) { bks[idx].st = 'CANCELLED'; saveStore(bks); }
+
+  btn.disabled = false;
+  btn.innerHTML = '確認取消';
+
+  // Show success overlay, then redirect after 2s
+  showModal('modal-cancel-success');
+  setTimeout(() => {
+    hideModal('modal-cancel-success');
+    goHome();
+  }, 2000);
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILITIES
+// ═══════════════════════════════════════════════════════
+function formatDate(dtStr) {
+  if (!dtStr) return '';
+  const d = new Date(dtStr + 'T12:00:00');
+  return d.toLocaleDateString('en-US', { month:'short', day:'2-digit', year:'numeric' });
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
