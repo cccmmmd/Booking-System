@@ -333,11 +333,17 @@ components:
       - PENDING
       - CONFIRMED
       - CANCELLED
+      - USED
+      - UNUSED
       description: '- PENDING：待確認（初始狀態）
 
         - CONFIRMED：已確認（店家收款確認後更新）
 
         - CANCELLED：已取消（終態，不可再變更）
+
+        - USED：客人已報到完成服務（終態，不可再變更）
+
+        - UNUSED：預約時段結束，客人未出現（終態，不可再變更）
 
         '
     BookingListItem:
@@ -450,11 +456,7 @@ components:
           type: string
           example: 王技師
         status:
-          type: string
-          enum:
-          - CONFIRMED
-          - CANCELLED
-          example: CONFIRMED
+          $ref: '#/components/schemas/BookingStatus'
     DashboardBedCell:
       type: object
       properties:
@@ -487,6 +489,16 @@ components:
           type: string
           nullable: true
           example: 王技師
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+          nullable: true
+          description: 格子對應預約的當前狀態，供前端判斷報到按鈕是否 disabled，空床位為 null
+        checked_in_at:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-04-15T10:35:00+08:00'
+          description: 報到時間，status=USED 時有值，其餘為 null
     DashboardSlot:
       type: object
       properties:
@@ -1516,6 +1528,57 @@ paths:
                   message: 此預約已為取消狀態
         '500':
           $ref: '#/components/responses/TransactionFailed'
+  /admin/bookings/{booking_code}/checkin:
+    patch:
+      summary: 執行報到或未報到
+      description: >
+        將 CONFIRMED 狀態的預約標記為 USED 或 UNUSED。
+        營運人員與門市人員均可操作。
+        非 CONFIRMED 狀態的預約回傳 422 INVALID_CHECKIN_STATUS。
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: booking_code
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [USED, UNUSED]
+      responses:
+        200:
+          description: 狀態更新成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  booking_code:
+                    type: string
+                  status:
+                    type: string
+                    enum: [USED, UNUSED]
+                  checked_in_at:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  checked_in_by:
+                    type: integer
+        401:
+          $ref: '#/components/responses/Unauthorized'
+        403:
+          description: 僅限已登入的後台使用者（營運人員與門市人員均可）
+        422:
+          description: INVALID_CHECKIN_STATUS — 預約狀態非 CONFIRMED，不可執行報到操作
   /admin/bookings/{booking_code}/note:
     patch:
       tags:
