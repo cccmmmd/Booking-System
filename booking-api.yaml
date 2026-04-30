@@ -1530,6 +1530,8 @@ paths:
           $ref: '#/components/responses/TransactionFailed'
   /admin/bookings/{booking_code}/checkin:
     patch:
+      tags:
+      - 後台 - 報到/未到到狀態變更
       summary: 執行報到或未報到
       description: >
         將 CONFIRMED 狀態的預約標記為 USED 或 UNUSED。
