@@ -1,7 +1,7 @@
 openapi: 3.0.3
 info:
   title: 連鎖按摩店線上多人預約系統 API
-  version: 2.6.0
+  version: 2.6.4
   description: '連鎖按摩店線上多人預約系統前後台 API 規格。
 
 
